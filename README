@@ -1,10 +1,32 @@
-QUEST is a determinant quantum Monte Carlo (DQMC) package designed to simulate the Hubbard model.
+QUEST is a determinant quantum Monte Carlo (DQMC) package designed to simulate the Hubbard model
+at finite temperatures. 
 
-Folders:
-	EXAMPLE ...... Examples of the code.
-	OpenBLAS ..... OpenBLAS library.
-	SRC .......... QUEST source code.
-	doc .......... Old documentation.
-	geometries ... Examples of the different geometries.
-	makefiles .... A collection of sample makefiles.
+Folders in the package:
+	/EXAMPLE ...... Sample implementations of the QUEST library.
+	/OpenBLAS ..... OpenBLAS library.
+	/SRC .......... QUEST source code.
+	/doc .......... Documentations.
+	/geometries ... Examples of general geometry inputs.
+
+Installation and test:
+  1. Edit Makefile based on your local system settings. 
+  2. Build QUEST by launching make.
+  3. If QUEST is successfully built, head to /EXAMPLE/test.
+     There will be two executables that can be used to test the build.
+
+       - test1 ..... Simulate the Hubbard model on a 4x4 square lattice. 
+                     No input file needed. Simply launch the executable.
+
+       - test2 ..... Simulate the Hubbard model on an LxL square lattice.
+                     There are 3 sample input files:
+                        small.in ..... L = 8
+                        median.in .... L = 10
+                        large.in ..... L = 16
+                     To run the L=8 simulation, for example, use "test2 small.in", no
+                     input redirection is necessary.
+
+   4. Once the build is verified, the executable /EXAMPLE/geom/ggeom is the most 
+      general implementation of the QUEST library. Using general geometry input,
+      the executable can be used to simulate any lattice geometry that can be defined
+      by QUEST's convention. Examples of geometry input can be found under /geometries.
                     
