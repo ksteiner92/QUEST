@@ -1,9 +1,5 @@
 QUEST is a determinant quantum Monte Carlo (DQMC) package designed to simulate the Hubbard model.
 
-=====================
-QUEST readme file
-=====================
-
 Folders:
 	EXAMPLE ...... Examples of the code.
 	OpenBLAS ..... OpenBLAS library.
