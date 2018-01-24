@@ -2,6 +2,11 @@
 /SRC/*.mod
 /SRC/*.o
 
+# ignore executables
+/EXAMPLE/geom/ggeom
+/EXAMPLE/test/test
+/EXAMPLE/verify/verify
+
 # ignore QUEST library
 libdqmc.a
 
