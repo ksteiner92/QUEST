@@ -71,7 +71,7 @@ subroutine init_recip_latt(lattice,recip_lattice,applytwist,cfg)
  type(config),intent(in),target              :: cfg
  logical, intent(in)                         :: applytwist
 
- if(.not.lattice%initialized)stop'Need to initialize lattice before recip_lattice'
+ if(.not.lattice%initialized) stop 'Need to initialize lattice before recip_lattice'
 
  !alias arrays
  scc=>lattice%scc
@@ -87,7 +87,7 @@ subroutine init_recip_latt(lattice,recip_lattice,applytwist,cfg)
  recip_lattice%kpoint=0.d0
  if(applytwist)then
     call cfg_get(cfg,'bcond',i,kpoint)
-    if(i<ndim)stop'Number of boundary condition must at least equal ndim'
+    if(i<ndim) stop 'Number of boundary condition must at least equal ndim'
     recip_lattice%kpoint(1:ndim)=kpoint(1:ndim)
     !Since QUEST cannot handle complex hoppings we stop if the k-point is /=0.
     if(sum((kpoint(1:ndim)-nint(kpoint(1:ndim)))**2)>toll)then
@@ -167,7 +167,7 @@ subroutine construct_recip_lattice(recip_lattice)
  real*8, pointer        :: klist(:,:) 
  type(recip_lattice_t), intent(inout)  :: recip_lattice
 
- if(.not.recip_lattice%initialized)stop'Need to initialize recip_lattice before construction'
+ if(.not.recip_lattice%initialized) stop 'Need to initialize recip_lattice before construction'
 
  call get_inverse(recip_lattice%kc,invkc)
 
