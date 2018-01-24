@@ -1,7 +1,5 @@
 ############################################################################
 #  QUEST Makefile    
-#    Date:   08/03/2014
-#  Author:   Chia-Chen Chang
 ############################################################################
 QUEST_DIR = $(shell pwd)
 
@@ -9,10 +7,10 @@ QUEST_DIR = $(shell pwd)
 COMPILER  = gnu
 
 # 1) default, 2) mkl_seq, 3) mkl_par
-LAPACK    = default
+LAPACK    = mkl_seq
 
 # intel MKL library path
-MKLPATH   = $(MKLROOT)/lib/intel64
+MKLPATH   = $(MKLROOT)/lib
 
 # MAGMA library path
 MAGMAPATH = 
@@ -24,7 +22,7 @@ CUDAPATH  =
 FLAG_CKB  = #-DDQMC_CKB
 
 # GPU version equal-time Green's function kernel
-FLAG_ASQRD = -DDQMC_ASQRD
+#FLAG_ASQRD = -DDQMC_ASQRD
 
 # GPU version time-dependent Green's function kernel
 FLAG_BSOFI = #-DDQMC_BSOFI
@@ -60,9 +58,9 @@ ifeq ($(COMPILER), intel)
   CXX_FLAGS = -m64 -Wall -O3 -unroll $(CUDAINC) $(MAGMAINC)
 endif
 ifeq ($(COMPILER), gnu)
-  FC        = gfortran
-  CXX       = g++
-  FC_FLAGS  = -fopenmp -m64 -Wall -O3 -funroll-loops
+  FC        = gfortran-mp-5
+  CXX       = g++-mp-5
+  FC_FLAGS  = -std=legacy -fopenmp -m64 -Wall -O3 -funroll-loops
   CXX_FLAGS = -m64 -Wall -O3 -funroll-loops $(CUDAINC) $(MAGMAINC)
 endif
 
@@ -99,7 +97,8 @@ endif
 
 ifeq ($(LAPACK), mkl_seq)
   ifdef MKLPATH
-    LAPACKLIB = -L$(MKLPATH) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread
+    #LAPACKLIB = -L$(MKLPATH) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread
+    LAPACKLIB = -L$(MKLPATH) -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread
   else
     $(error "MKLPATH" is not defined in the Makefile.)
   endif
