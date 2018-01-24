@@ -4,8 +4,7 @@
 
 # ignore executables
 /EXAMPLE/geom/ggeom
-/EXAMPLE/test/test
-/EXAMPLE/verify/verify
+/EXAMPLE/test/test?
 
 # ignore QUEST library
 libdqmc.a
