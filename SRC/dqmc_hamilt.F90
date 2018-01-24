@@ -139,9 +139,9 @@ contains
     nullify(tcfg)
 
     if(.not.lattice%constructed) &
-       stop'Need to construct lattice before building Hamiltonian'
+       stop 'Need to construct lattice before building Hamiltonian'
     if(.not.recip_lattice%initialized) &
-       stop'Need to initialize recip_lattice before building Hamiltonian'
+       stop 'Need to initialize recip_lattice before building Hamiltonian'
 
     !Set local alias
     natom  = lattice%natom
@@ -290,8 +290,9 @@ contains
      integer, pointer :: tneig(:,:),Uneig(:,:),Jneig(:,:)
      integer, pointer :: tsite(:),Usite(:),Jsite(:)
      
-     if(.not.hamilt%constructed) stop'Hamiltonian needs to be &
-        &constructed before neig can be found'
+     if (.not.hamilt%constructed) then
+       stop 'Hamiltonian needs to be constructed before neig can be found'
+     end if
     
      n=size(hamilt%hopup,1)
 
