@@ -4,14 +4,7 @@ program dqmc_verify
   use DQMC_Hubbard
   use DQMC_Struct
   use DQMC_Phy0
-  ! Chia-Chen: 09/06/2011
-  ! MPI module is require in order to run verity in QUEST 1.0.8
-  ! This is because :
-  ! 1) We need to get the correct numebr of processors
-  !    in DQMC_Phy0_Avg() even for serial runs.
-  ! 2) The new DQMC_Phy0_Avg() can use multiprocessors
-  !    to calculate observable averages and errors.
-  use DQMC_MPI 
+  !use DQMC_MPI 
   implicit none
 
   !  Purpose
