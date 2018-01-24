@@ -184,7 +184,7 @@ subroutine construct_lattice(lattice, SOP)
  integer, pointer        :: sc(:,:) 
  real*8                  :: projk(rdim),xxat(rdim),xx(rdim),invscc(rdim,rdim),ainv(rdim,rdim),cmin,cmax
  
- if(.not.lattice%initialized)stop'Need to initialize lattice before construct_lattice'
+ if(.not.lattice%initialized) stop 'Need to initialize lattice before construct_lattice'
  
  !Initialize local variables/pointers
  ndim   =  lattice%ndim
@@ -429,7 +429,7 @@ integer function hoptowho(iat,delta,jat,lattice)
  real*8             :: projk(rdim),xxat(rdim),invscc(rdim,rdim),xx(rdim)
  real*8, pointer    :: cartpos(:,:)
 
- if(.not.lattice%constructed)stop'Need to construct lattice before hoptowho'
+ if(.not.lattice%constructed) stop 'Need to construct lattice before hoptowho'
 
  cartpos=>lattice%cartpos
  ndim=lattice%ndim
@@ -488,7 +488,7 @@ do ic=1,lattice%nclass
                   if(abs(rphase-nint(rphase))<1.d-6)then
                      lattice%gf_phase(j,i)=nint(rphase)
                   else
-                     stop'problem with phase'
+                     stop 'problem with phase'
                   endif
                endif
             endif
@@ -496,7 +496,7 @@ do ic=1,lattice%nclass
          csize=csize+1
       enddo
    enddo
-   if(csize/=lattice%class_size(ic))stop'problem with classes'
+   if(csize/=lattice%class_size(ic)) stop 'problem with classes'
 enddo
 end subroutine
 
