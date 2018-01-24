@@ -225,7 +225,7 @@ contains
             jnew = kbonds%map_symm_ak(jak, isymm)
             !and their pair number
             jb   = kbonds%bmap(inew, jnew, im)
-            if (jb < 0) stop'Symmetry map is wrong'
+            if (jb < 0) stop 'Symmetry map is wrong'
             !Store the mapping
             kbonds%map_symm_bak(ib, isymm, im) = jb
          enddo
