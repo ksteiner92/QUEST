@@ -198,7 +198,7 @@ nsites=lattice%nsites
 ncell=lattice%ncell
 npairbond=0
 
-if(.not.Bonds%initialized)stop'Need to initialize Bonds before calling make_pairs'
+if(.not.Bonds%initialized) stop 'Need to initialize Bonds before calling make_pairs'
 allocate(Pairs%pair_map(Bonds%ntotbond))
 
 if(move_to_record(INPUT_FIELDS(PAIRS_F),inpunit))then
@@ -206,7 +206,7 @@ if(move_to_record(INPUT_FIELDS(PAIRS_F),inpunit))then
    read(inpunit,'(A)')string
    !count how many bonds are used to define pairing function
    do 
-      if(npairbond>Bonds%ntotbond)stop 'Too many bonds in #PAIRING.'
+      if(npairbond>Bonds%ntotbond) stop 'Too many bonds in #PAIRING.'
       npairbond=npairbond+1
       read(string,*,iostat=ios)(idum,ibond=1,npairbond)
       if(ios/=0)exit
@@ -236,7 +236,7 @@ if(move_to_record(INPUT_FIELDS(PAIRS_F),inpunit))then
             exit
          endif
       enddo
-      if(jbond>Bonds%ntotbond)stop 'One or more labels in #PAIRING are wrong' 
+      if(jbond>Bonds%ntotbond) stop 'One or more labels in #PAIRING are wrong' 
    enddo
   
    do iwave = 1, nwave
