@@ -550,7 +550,7 @@ integer, pointer :: tmp_symm(:,:)
 integer, pointer :: tmp_symm_k(:,:)
 integer, pointer :: tmp_valid(:)   
 
-if(.not.SymmOp%lattice_mapped)stop'Need to map lattice symmetries before recip lattice ones'
+if (.not.SymmOp%lattice_mapped) stop 'Need to map lattice symmetries before recip lattice ones'
 
 !Assign pointers
 symmlabel => SymmOp%symmlabel 
@@ -615,7 +615,7 @@ do j = 1, SymmOp%nsymm
          if(applytwist)then
             includesymm = .false.
          else
-            stop'Problem with symmetry in k-space'
+            stop 'Problem with symmetry in k-space'
          endif
       endif
    enddo
@@ -693,7 +693,7 @@ if(SymmOp%addTimeRev)then
           exit
          endif
       enddo
-      if (jk > recip_lattice%nkpts) stop'Problem with symmetry in k-space'
+      if (jk > recip_lattice%nkpts) stop 'Problem with symmetry in k-space'
    enddo
 endif
 
@@ -726,7 +726,7 @@ subroutine map_symm_bonds(Bonds,SymmOp,Lattice)
  real*8, allocatable :: xxpair(:,:)
  logical, allocatable :: bond_on(:,:)
 
- if(.not.lattice%analyzed)stop'Need to analyze lattice before mapping bonds'
+ if (.not.lattice%analyzed) stop 'Need to analyze lattice before mapping bonds'
  if(Bonds%ntotbond==0)return
 
  natom=Lattice%natom; nsites=Lattice%nsites; ndim=Lattice%ndim
@@ -930,7 +930,7 @@ integer, pointer      :: myclass(:,:)
 type(symm_operations) :: SymmOp
 type(lattice_t)       :: lattice
 
-if(.not.SymmOp%lattice_mapped)stop'Need to map symmetries over lattice before classes'
+if (.not.SymmOp%lattice_mapped) stop 'Need to map symmetries over lattice before classes'
 
 !initialize local variables
 natom=lattice%natom
@@ -1117,7 +1117,7 @@ type(symm_operations) :: SymmOp
 type(recip_lattice_t) :: recip_lattice
 logical,intent(in)    :: applytwist
 
-if(.not.SymmOp%recip_lattice_mapped)stop'Need to map symmetries over lattice before classes (reciprocal)'
+if (.not.SymmOp%recip_lattice_mapped) stop 'Need to map symmetries over lattice before classes (reciprocal)'
 
 !initialize local variables
 nsymm=SymmOp%nsymm
@@ -1221,7 +1221,7 @@ integer :: ib,nclass,ntotbond,ntotbondsq,isymm,iclass,istart,csize,csizenew,&
 integer,pointer :: myclass(:,:) 
 integer, allocatable :: bond1(:,:),bond2(:,:),csizev(:)
 
-if(.not.SymmOp%bonds_mapped)stop'Need to map bonds before analyzing symmetry'
+if (.not.SymmOp%bonds_mapped) stop 'Need to map bonds before analyzing symmetry'
 
 ntotbond=size(SymmOp%map_symm_b,1)
 ntotbondsq=(ntotbond**2+ntotbond)/2
