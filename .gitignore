@@ -1,0 +1,9 @@
+# ignore module and obj files under /SRC
+/SRC/*.mod
+/SRC/*.o
+
+# ignore QUEST library
+libdqmc.a
+
+# ignore VIM swap files
+*.swp
