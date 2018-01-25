@@ -191,8 +191,6 @@ contains
 
     ! ... Executable ...
 
-    ! 05/09/2012: Removed by C.C.
-    !
     !Open output file
     !call CFG_Get(cfg, "gfile", fname)
     !outname=trim(adjustl(fname))//".out"
@@ -264,7 +262,7 @@ contains
 
     ! Deactivate measurements during sweep if tdm is on
     nmeas = 1; if (tdm > 0) nmeas = 0
-    
+
     ! call the function
     call DQMC_Hub_Init(Hub, U, t_up, t_dn, mu_up, mu_dn, L, n_t, n_U, n_mu, dtau, &
        HSF, nWarm, nPass, nMeas, nTry, nBin, ntausk, seed, nOrth, nWrap, fixw, &
@@ -297,7 +295,7 @@ contains
     use dqmc_mpi
 #ifdef __INTEL_COMPILER
   use IFPORT, only : getpid
-#else if __PGI
+#elif __PGI
   integer :: getpid  
 #endif
 
@@ -497,7 +495,6 @@ contains
        else
           ! continuous case
           allocate(Hub%CHSF(n,L))
-          Hub%HSF = 1
           do i = 1, Hub%L   
              call ran1(n, Hub%CHSF(:,i), Hub%seed)
           end do          
@@ -2032,7 +2029,6 @@ contains
         j = i + Hub%n - 1
         G_up = A_up(i:j, i:j)
 
-        ! 05/15/2012, C.C.
         ! Modified in order to take into account U < 0 model on non-bipartite lattices.
         ! Before the modification, the code calls DQMC_Gfun_CopyUp() which assumes bipartite lattice.
         ! This causes segmentation fault on, for example, triagular lattices which lacks particle-hole
