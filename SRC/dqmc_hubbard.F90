@@ -1611,7 +1611,7 @@ contains
           ! Computing the Gaussian
           ! dE = [(x+dx)^2-x^2]/2 = x*dx + dx*dx/2
           dE = CHSF(j,i)*dx - dx*dx/2
-          r  = abs(r_up * r_dn)*exp(dE)
+          r  = abs(r_up * r_dn)*exp(-dE)
 
           ! Compute the probability
           if(r <= ONE) then
