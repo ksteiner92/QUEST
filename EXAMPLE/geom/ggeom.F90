@@ -51,6 +51,7 @@ program dqmc_ggeom
   !   call DQMC_open_file(adjustl(trim(ofile))//'.HSF.stream','unknown', HSF_output_file_unit)
   !endif
 
+
   call DQMC_open_file(adjustl(trim(ofile))//'.geometry','unknown', symmetries_output_file_unit)
   !Determines type of geometry file
   call DQMC_Geom_Read_Def(Hub%S, gfile, tformat)
@@ -65,7 +66,7 @@ program dqmc_ggeom
 
   ! Initialize the rest data
   call DQMC_Hub_Config(Hub, cfg)
-
+  
   ! Perform input parameter checks
   if (Hub%nTry >= Gwrap%Lattice%nSites) then
     write(*,*)
@@ -110,11 +111,19 @@ program dqmc_ggeom
   endif
 
   ! Warmup sweep
-  do i = 1, Hub%nWarm
-     if (mod(i, 10)==0) write(*,'(A,i6,1x,i3)')' Warmup Sweep, nwrap  : ', i, Hub%G_up%nwrap
-     call DQMC_Hub_Sweep(Hub, NO_MEAS0)
-     call DQMC_Hub_Sweep2(Hub, Hub%nTry)
-  end do
+  if (Hub%HSFtype .eq. 0) then
+    do i = 1, Hub%nWarm
+       if (mod(i, 10)==0) write(*,'(A,i6,1x,i3)')' Warmup Sweep, nwrap  : ', i, Hub%G_up%nwrap
+       call DQMC_Hub_Sweep(Hub, NO_MEAS0)
+       call DQMC_Hub_Sweep2(Hub, Hub%nTry)
+    end do
+  else if (Hub%HSFtype .eq. 1) then
+    do i = 1, Hub%nWarm
+       if (mod(i, 10)==0) write(*,'(A,i6,1x,i3)')' Warmup Sweep, nwrap  : ', i, Hub%G_up%nwrap
+       call DQMC_Hub_Sweep_cont(Hub, NO_MEAS0)
+       call DQMC_Hub_Sweep2_cont(Hub, Hub%nTry)
+    end do
+  end if
 
   ! We divide all the measurement into nBin,
   ! each having nPass/nBin pass.
@@ -123,10 +132,17 @@ program dqmc_ggeom
   if (nIter > 0) then
      do i = 1, nBin
         do j = 1, nIter
-           do k = 1, Hub%tausk
-              call DQMC_Hub_Sweep(Hub, NO_MEAS0)
-              call DQMC_Hub_Sweep2(Hub, Hub%nTry)
-           enddo
+           if (Hub%HSFtype .eq. 0) then
+              do k = 1, Hub%tausk
+                 call DQMC_Hub_Sweep(Hub, NO_MEAS0)
+                 call DQMC_Hub_Sweep2(Hub, Hub%nTry)
+              enddo
+           else if (Hub%HSFtype .eq. 1) then
+              do k = 1, Hub%nWarm
+                 call DQMC_Hub_Sweep_cont(Hub, NO_MEAS0)
+                 call DQMC_Hub_Sweep2_cont(Hub, Hub%nTry)
+              end do
+           end if
 
            ! Fetch a random slice for measurement 
            call ran0(1, randn, Hub%seed)
