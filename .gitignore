@@ -11,3 +11,5 @@ libdqmc.a
 
 # ignore VIM swap files
 *.swp
+
+/EXAMPLE/geom/test.*
