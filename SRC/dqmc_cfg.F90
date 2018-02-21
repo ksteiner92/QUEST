@@ -73,8 +73,8 @@ module DQMC_Cfg
        &  "reject ", &    ! rejection counts                                     
        &  "seed   ", &    ! random seed                                          
        &  "ssxx   ", &    ! use iterative refinement during sweep
-       &  "t_dn   ", &    ! parameter for kinetic energy                         
        &  "t_up   ", &    ! parameter for kinetic energy                         
+       &  "t_dn   ", &    ! parameter for kinetic energy                         
        &  "tausk  ", &    ! frequence of unequal time measurement                
        &  "tdm    "/)     ! compute time dependent measurement
 
@@ -1003,7 +1003,7 @@ contains
     else
        call DQMC_Error("cannot find parameter "//name, 0)
     end if
-
+  
   end subroutine DQMC_Config_GetR
 
   !---------------------------------------------------------------------!
@@ -1027,9 +1027,9 @@ contains
 
     ! ... Executable ...
     id = DQMC_Find_Param(cfg, name)
-!    write(*,*) "in DQMC_Config_GetPR, id=",id
-!    write(*,*) "in DQMC_Config_GetPR, name=",name
-!    write(*,*) "in DQMC_Config_GetPR, value associated?",associated(value)
+    !write(*,*) "in DQMC_Config_GetPR, id=",id
+    !write(*,*) "in DQMC_Config_GetPR, name=",name
+    !write(*,*) "in DQMC_Config_GetPR, value associated?",associated(value)
     if (id .gt. 0) then
        if (.not.cfg%record(id)%isSet) then
           call DQMC_Warning(name//" wasn't initialized,&
@@ -1075,9 +1075,9 @@ contains
 
     ! ... Executable ...
     id = DQMC_Find_Param(cfg, name)
-!    write(*,*) "in DQMC_Config_GetPI, id=",id
-!    write(*,*) "in DQMC_Config_GetPI, name=",name
-!    write(*,*) "in DQMC_Config_GetPI, value associated?",associated(value)
+    !write(*,*) "in DQMC_Config_GetPI, id=",id
+    !write(*,*) "in DQMC_Config_GetPI, name=",name
+    !write(*,*) "in DQMC_Config_GetPI, value associated?",associated(value)
     if (id .gt. 0) then
        if (.not.cfg%record(id)%isSet) then
           call DQMC_Warning(name//" wasn't initialized, &
