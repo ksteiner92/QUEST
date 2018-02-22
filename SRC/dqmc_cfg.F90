@@ -647,7 +647,7 @@ contains
     type(Param), pointer   :: curr 
     integer, parameter     :: funit = 10
     character(len=60)      :: iname
-    integer                :: IPT_T
+    integer                :: IPT
 
     ! ... Executable ...
 
