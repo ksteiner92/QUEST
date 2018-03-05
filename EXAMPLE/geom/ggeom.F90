@@ -28,6 +28,7 @@ program dqmc_ggeom
   integer             :: FLD_UNIT, TDM_UNIT
   real(wp)            :: randn(1)
   integer             :: nproc
+
   call system_clock(t1)  
 
   !Setup OpenMP environment
@@ -138,7 +139,7 @@ program dqmc_ggeom
                  call DQMC_Hub_Sweep2(Hub, Hub%nTry)
               enddo
            else if (Hub%HSFtype .eq. 1) then
-              do k = 1, Hub%nWarm
+              do k = 1, Hub%tausk
                  call DQMC_Hub_Sweep_cont(Hub, NO_MEAS0)
                  call DQMC_Hub_Sweep2_cont(Hub, Hub%nTry)
               end do
@@ -173,7 +174,6 @@ program dqmc_ggeom
         call DQMC_Phy0_Avg(Hub%P0)
         call DQMC_tdm1_Avg(tm)
 
-  
         if (Hub%meas2) then
            if(Hub%P2%diagonalize)then
              call DQMC_Phy2_Avg(Hub%P2, Hub%S)
@@ -288,6 +288,11 @@ program dqmc_ggeom
   write(STDOUT,*) "Running time:",  (t2-t1)/REAL(rate), "(second)"
 
   close(symmetries_output_file_unit)
+
+
+#ifdef DQMC_PROFILE
+  call gfun_print()
+#endif
 
 end program dqmc_ggeom
 
