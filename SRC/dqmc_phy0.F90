@@ -117,27 +117,27 @@ module DQMC_Phy0
 
   ! Name of scalar variables
   character(len=*), parameter :: P0_STR(P0_N) = (/&
-       "                       spin up density : ", &
-       "                     spin down density : ", &
-       "                         total density : ", &
-       "                      double occupancy : ", &
-       "              kinetic (hopping) energy : ", &
-       "          potential (U*Nup*Ndn) energy : ", &
-       "  PH-symm total density (no chem potl) : ", &
-       "                           chi_thermal : ", &
-       "                         specific heat : ", &
-       "                     (magnetization)^2 : ", &
-       "             XX ferro structure factor : ", &
-       "             ZZ ferro structure factor : ", &
-       "                XX AF structure factor : ", &
-       "             Root Mean Square of XX AF : ", &
-       "                ZZ AF structure factor : ", &
-       "             Root Mean Square of ZZ AF : "/)
+       "                         spin up density : ", &
+       "                       spin down density : ", &
+       "                           total density : ", &
+       "                        double occupancy : ", &
+       "                kinetic (hopping) energy : ", &
+       "            potential (U*Nup*Ndn) energy : ", &
+       "  PH-symm total density (inc. chem potl) : ", &
+       "                             chi_thermal : ", &
+       "                           specific heat : ", &
+       "                       (magnetization)^2 : ", &
+       "               XX ferro structure factor : ", &
+       "               ZZ ferro structure factor : ", &
+       "                  XX AF structure factor : ", &
+       "               Root Mean Square of XX AF : ", &
+       "                  ZZ AF structure factor : ", &
+       "               Root Mean Square of ZZ AF : "/)
 
   character(len=*), parameter :: P0_SIGN_STR(3) = (/&
-       "                              avg sign : ", &
-       "                           avg up sign : ", &
-       "                           avg dn sign : "/)
+       "                                avg sign : ", &
+       "                             avg up sign : ", &
+       "                             avg dn sign : "/)
 
 
   type Phy0
@@ -687,7 +687,7 @@ contains
     integer  :: i, j, k, ph                      ! Loop iterator
     integer  :: tmp, idx, m                      ! Helper variables
     real(wp) :: sgn                        
-    real(wp) :: var1, var2, var3          
+    real(wp) :: var0, var1, var2, var3          
     integer, pointer  :: start(:) 
     integer, pointer  :: r(:) 
     integer, pointer  :: A(:) 
@@ -727,16 +727,11 @@ contains
 
        !======================================================!
        ! Double occupancy P0%up(i) * P0%dn(i)
-       !======================================================!
-       P0%meas(P0_NUD, tmp) = P0%meas(P0_NUD, tmp) + P0%up(i) * P0%dn(i) 
-
-       !=====================================================================!
        ! Potential energy P0%up(i) * P0%dn(i) * U(S%Map(i))          
-       !=====================================================================!
-       P0%meas(P0_PE, tmp) = P0%meas(P0_PE, tmp)         + &
-           P0%meas(P0_NUD, tmp) * U(S%Map(i))            !+ &
-       !    5.d-1 * U(S%Map(i)) * ( P0%up(i) + P0%dn(i) ) + &
-       !    2.5d-1 * U(S%Map(i))
+       !======================================================!
+       var0 = P0%up(i) * P0%dn(i)
+       P0%meas(P0_NUD, tmp) = P0%meas(P0_NUD, tmp) + var0 
+       P0%meas(P0_PE, tmp)  = P0%meas(P0_PE, tmp)  + var0 * U(S%Map(i))
     end do
 
     P0%meas(P0_NUP, tmp) = sum(P0%up)
@@ -774,14 +769,14 @@ contains
     P0%meas(P0_m_squared, tmp) = 2.5d-1 * ( P0%meas(P0_DENSITY, tmp) - 2.d0 * P0%meas(P0_NUD, tmp) )
     
     !=================================================================!
-    ! Total energy, in particle-hole symmetric form, excluding chemical potential terms  
+    ! Total energy, in particle-hole symmetric form, including chemical potential terms  
     !=================================================================!
     P0%meas(P0_ENERGY, tmp) = P0%meas(P0_KE, tmp) + P0%meas(P0_PE, tmp)
     do i = 1, n
-      P0%meas(P0_ENERGY, tmp) = P0%meas(P0_ENERGY, tmp)   + &
-           5.d-1 * U(S%Map(i)) * ( P0%up(i) + P0%dn(i) )  + &
-           2.5d-1 * U(S%Map(i))                           !- &
-          !(mu_up(S%Map(i)) * P0%up(i) + mu_dn(S%Map(i)) * P0%dn(i))
+      P0%meas(P0_ENERGY, tmp) = P0%meas(P0_ENERGY, tmp)     &
+           - 5.d-1 * U(S%Map(i)) * ( P0%up(i) + P0%dn(i) )  &
+           + 2.5d-1 * U(S%Map(i))                           &
+           - (mu_up(S%Map(i)) * P0%up(i) + mu_dn(S%Map(i)) * P0%dn(i))
     enddo
 
 
