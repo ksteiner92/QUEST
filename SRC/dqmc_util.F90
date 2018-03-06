@@ -35,9 +35,9 @@ module DQMC_Util
   integer,  parameter :: STDIN  = 5        ! standardinput
 
   character(*), parameter :: FMT_STRINT  = "(a30, i12)"
-  character(*), parameter :: FMT_STRDBL  = "(a30, f19.6)"
-  character(*), parameter :: FMT_STR2BL  = "(a30, '(', f11.6, ',', f11.6, ')')"
-  character(*), parameter :: FMT_VALERR  = "(a30, f12.6,' +- ',f12.6)"
+  character(*), parameter :: FMT_STRDBL  = "(a30, es19.6)"
+  character(*), parameter :: FMT_STR2BL  = "(a30, '(', es11.6, ',', es11.6, ')')"
+  character(*), parameter :: FMT_VALERR  = "(a30, es12.6,' +- ',es12.6)"
   character(*), parameter :: FMT_INTPAR  = "(i3,i3)"
   character(*), parameter :: FMT_DBLINE  = "(76('='))"
   character(*), parameter :: FMT_SGLINE  = "(76('-'))"
@@ -982,12 +982,12 @@ contains
        do i = 1, n
           write(OPT,*) label(i)
           do j = 1, m
-             write(OPT, "(i3,e16.8,' +-',e16.8)") j-1, avg(i,j), err(i,j)
+             write(OPT, "(i3,es16.8,' +-',es16.8)") j-1, avg(i,j), err(i,j)
           end do
        end do
     else
        do j = 1, m
-          write(OPT, "(a,e16.8,' +-',e16.8)") label(j), avg(j,1), err(j,1)
+          write(OPT, "(a, es16.8,' +-',es16.8)") label(j), avg(j,1), err(j,1)
        end do
     end if
     !write(OPT,*)
@@ -1020,15 +1020,15 @@ contains
        do i = 1, n
           write(OPT,*) label(i)
           do j = 1, m
-             write(OPT,"(i3,'(',e15.8,' +-',e15.8,') &
-                  & +i (',e15.8,' +-',e15.8,')')")&
+             write(OPT,"(i3,'(',es15.8,' +-',es15.8,') &
+                  & +i (',es15.8,' +-',es15.8,')')")&
                   j-1, dble(avg(i,j)), dble(err(i,j)), aimag(avg(i,j)), aimag(err(i,j+m))
           end do
        end do
     else
        do j = 1, m
           write(OPT,"(3x, A,'(',e15.8,' +-',e15.8,') &
-               & +i (',e15.8,' +-',e15.8,')')") &
+               & +i (',es15.8,' +-',es15.8,')')") &
                label(j), dble(avg(j,1)), dble(err(j,1)), aimag(avg(j,1)), aimag(err(j,1))
        end do
     end if
