@@ -1049,7 +1049,7 @@ contains
 
     integer             :: i, j, iprop
     real(wp)            :: tmp(T1%L, 2)
-    character(len=10)   :: label(T1%L)
+    character(len=15)   :: label(T1%L)
     character(len=slen) :: title
 
     ! ... Executable ...
@@ -1058,7 +1058,7 @@ contains
     if (qmc_sim%rank .ne. 0) return
 
     do j = 1, T1%L
-       write(label(j),'(f10.5)') (j-1)*T1%dtau
+       write(label(j),'(f15.8)') (j-1)*T1%dtau
     enddo
 
     do iprop = 1, NTDMARRAY
@@ -1214,7 +1214,7 @@ contains
     integer             :: i, j, k, ip, jp, iprop
     integer             :: np, npp
     complex(wp)         :: tmp(T1%L, 2)
-    character(len=10)   :: label(T1%L)
+    character(len=15)   :: label(T1%L)
     character(len=60) :: title
 
     ! ... Executable ...
@@ -1223,7 +1223,7 @@ contains
     if (qmc_sim%rank .ne. 0) return
 
     do j = 1, T1%L
-       write(label(j),'(f10.5)') (j-1)*T1%dtau
+       write(label(j),'(f15.8)') (j-1)*T1%dtau
        label(j) = adjustl(label(j))
     enddo
 
@@ -1273,7 +1273,7 @@ contains
     complex(wp), pointer :: ftw(:,:)  
 
     complex(wp)          :: tmp(T1%L,2)
-    character(len=10)    :: label(T1%L)
+    character(len=15)    :: label(T1%L)
     character(len=50)    :: title
 
     integer, parameter  :: gflist(3) = (/IGFUN, IGFUP, IGFDN/)
@@ -1295,7 +1295,7 @@ contains
     npp = np*(np+1)/2
 
     do j = 1, L
-       write(label(j),'(f10.5)') (2*j-1)*pi/(T1%dtau*L)
+       write(label(j),'(f15.8)') (2*j-1)*pi/(T1%dtau*L)
        label(j) = adjustl(label(j))
     enddo
 
