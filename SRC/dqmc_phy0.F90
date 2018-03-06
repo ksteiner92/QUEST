@@ -90,27 +90,25 @@ module DQMC_Phy0
   ! Parameter for the index of scalar variables (IMEAS)
   integer, parameter :: P0_NUP       = 1
   integer, parameter :: P0_NDN       = 2
-  integer, parameter :: P0_NUD       = 3
-  integer, parameter :: P0_KE        = 4
-  integer, parameter :: P0_ENERGY    = 5
-  integer, parameter :: P0_DENSITY   = 6
-  integer, parameter :: P0_CHIT      = 7
-  integer, parameter :: P0_CV        = 8
+  integer, parameter :: P0_DENSITY   = 3
+  integer, parameter :: P0_NUD       = 4
+  integer, parameter :: P0_KE        = 5
+  integer, parameter :: P0_PE        = 6 
+  integer, parameter :: P0_ENERGY    = 7
 
-  integer, parameter :: P0_SFERRO    = 9
-  integer, parameter :: P0_SFER2     = 10
-  integer, parameter :: P0_SAF       = 15
-  integer, parameter :: P0_SAFSQ     = 16
-  integer, parameter :: P0_SAF2      = 17
-  integer, parameter :: P0_SAF2SQ    = 18
+  integer, parameter :: P0_CHIT      = 8
+  integer, parameter :: P0_CV        = 9
 
-  integer, parameter :: P0_potential_energy    = 11
-  integer, parameter :: P0_hopping_energy    = 12
-  integer, parameter :: P0_double_occupancy    = 13
-  integer, parameter :: P0_magnetization_squared    = 14
+  integer, parameter :: P0_m_squared = 10
+  integer, parameter :: P0_SFERRO    = 11
+  integer, parameter :: P0_SFER2     = 12
+  integer, parameter :: P0_SAF       = 13
+  integer, parameter :: P0_SAFSQ     = 14
+  integer, parameter :: P0_SAF2      = 15
+  integer, parameter :: P0_SAF2SQ    = 16
 
-  integer, parameter :: P0_N_NO_SAF  = 14
-  integer, parameter :: P0_N         = 18
+  integer, parameter :: P0_N_NO_SAF  = 12
+  integer, parameter :: P0_N         = 16
 
   integer, parameter :: P0_SGN       = 1
   integer, parameter :: P0_SGNUP     = 2
@@ -119,29 +117,27 @@ module DQMC_Phy0
 
   ! Name of scalar variables
   character(len=*), parameter :: P0_STR(P0_N) = (/&
-       "          Up spin occupancy : ", &
-       "        Down spin occupancy : ", &
-       "             <U*N_up*N_dn>  : ", &
-       "             Kinetic energy : ", &
-       "               Total energy : ", &
-       "                    Density : ", &
-       "                Chi_thermal : ", &
-       "              Specific heat : ", &
-       "  XX Ferro structure factor : ", &
-       "  ZZ Ferro structure factor : ", &
-       "           Potential energy : ", &
-       "             Hopping energy : ", &
-       "           Double occupancy : ", &
-       "      Magnetization squared : ", &
-       "     XX AF structure factor : ", &
-       "  Root Mean Square of XX AF : ", &
-       "     ZZ AF structure factor : ", &
-       "  Root Mean Square of ZZ AF : "/)
+       "                       spin up density : ", &
+       "                     spin down density : ", &
+       "                         total density : ", &
+       "                      double occupancy : ", &
+       "              kinetic (hopping) energy : ", &
+       "          potential (U*Nup*Ndn) energy : ", &
+       "  PH-symm total density (no chem potl) : ", &
+       "                           chi_thermal : ", &
+       "                         specific heat : ", &
+       "                     (magnetization)^2 : ", &
+       "             XX ferro structure factor : ", &
+       "             ZZ ferro structure factor : ", &
+       "                XX AF structure factor : ", &
+       "             Root Mean Square of XX AF : ", &
+       "                ZZ AF structure factor : ", &
+       "             Root Mean Square of ZZ AF : "/)
 
   character(len=*), parameter :: P0_SIGN_STR(3) = (/&
-       "                   Avg sign : ", &
-       "                Avg up sign : ", &
-       "                Avg dn sign : "/)
+       "                              avg sign : ", &
+       "                           avg up sign : ", &
+       "                           avg dn sign : "/)
 
 
   type Phy0
@@ -675,15 +671,15 @@ contains
     ! Arguments
     ! =========
     !
-    integer, intent(in)          :: n            ! Number of sites
-    type(Phy0), intent(inout)    :: P0           ! Phy0
-    real(wp), intent(in)         :: G_up(n,n)    ! Green's function
-    real(wp), intent(in)         :: G_dn(n,n)    ! for spin up and down
-    real(wp), intent(in)         :: sgnup, sgndn ! Sgn for det(G_up) det(G_dn)
+    integer, intent(in)          :: n                   ! Number of sites
+    type(Phy0), intent(inout)    :: P0                  ! Phy0
+    real(wp), intent(in)         :: G_up(n,n)           ! Green's function
+    real(wp), intent(in)         :: G_dn(n,n)           ! for spin up and down
+    real(wp), intent(in)         :: sgnup, sgndn        ! Sgn for det(G_up) det(G_dn)
     real(wp), intent(in)         :: mu_up(n), mu_dn(n)  ! Chemical and Kinetic para
-    real(wp), intent(in)         :: t_up(:), t_dn(:)  ! Chemical and Kinetic para
-    real(wp), intent(in)         :: U(:)         ! Chemical and Kinetic para
-    type(Struct), intent(in)     :: S            ! Underline structure
+    real(wp), intent(in)         :: t_up(:), t_dn(:)    ! Chemical and Kinetic para
+    real(wp), intent(in)         :: U(:)                ! Chemical and Kinetic para
+    type(Struct), intent(in)     :: S                   ! Underline structure
     target :: S
 
     ! ... local scalar ...
@@ -722,83 +718,76 @@ contains
     ! Compute the site density for spin up and spin down
     do i = 1, n
        !======================================================!
-       ! The density of electrons of spin up(dn) on site i    !
-       ! is 1-G_up(i,i) (1-G_dn(i,i)).                        !
-       ! nup (ndn) is the sum of all spin up (down) electrons.!
+       ! The density of electrons of spin up(dn) on site i     
+       ! is 1-G_up(i,i) (1-G_dn(i,i)).                         
+       ! nup (ndn) is the sum of all spin up (down) electrons. 
        !======================================================!
        P0%up(i)  = ONE - G_up(i, i)
        P0%dn(i)  = ONE - G_dn(i, i)
-       P0%meas(P0_NUD, tmp) = P0%meas(P0_NUD, tmp)+ &
-            P0%up(i) * P0%dn(i) * U(S%Map(i))
+
        !======================================================!
        ! Double occupancy P0%up(i) * P0%dn(i)
        !======================================================!
-       P0%meas(P0_double_occupancy, tmp) = P0%meas(P0_double_occupancy, tmp) +&
-       P0%up(i) * P0%dn(i)
+       P0%meas(P0_NUD, tmp) = P0%meas(P0_NUD, tmp) + P0%up(i) * P0%dn(i) 
+
        !=====================================================================!
-       ! Potential energy (P0%up(i)-0.5d0) * (P0%dn(i)-0.5d0) * U(S%Map(i))
+       ! Potential energy P0%up(i) * P0%dn(i) * U(S%Map(i))          
        !=====================================================================!
-       P0%meas(P0_potential_energy, tmp) = P0%meas(P0_potential_energy, tmp)+ &
-            (P0%up(i) - 0.5d0) * (P0%dn(i) - 0.5d0) * U(S%Map(i))
-       
+       P0%meas(P0_PE, tmp) = P0%meas(P0_PE, tmp)         + &
+           P0%meas(P0_NUD, tmp) * U(S%Map(i))            !+ &
+       !    5.d-1 * U(S%Map(i)) * ( P0%up(i) + P0%dn(i) ) + &
+       !    2.5d-1 * U(S%Map(i))
     end do
 
     P0%meas(P0_NUP, tmp) = sum(P0%up)
     P0%meas(P0_NDN, tmp) = sum(P0%dn)
+    
+    ! set alias
+    start => S%T%cstart
+    r     => S%T%row
+    A     => S%T%A
     
     !=================================================================!
     ! Kinetic energy = tt*sum_{ij\sigma}(G_{ij\sigma}+G_{ji\sigma}) - 
     ! - \sum_{i\sigma} \mu_{i\sigma} (n_{i\sigma} + U_i / 2)!
     ! where site i and site j are neighbors   !
     !=================================================================!
-    ! Hopping energy = tt*sum_{ij\sigma}(G_{ij\sigma}+G_{ji\sigma})
-
-    ! set alias
-    start => S%T%cstart
-    r     => S%T%row
-    A     => S%T%A
-    
-    ! loop all adj sites
-    do i = 1, n  ! for each column
+    do i = 1, n  
        do j = start(i), start(i + 1)-1 ! for each nonzero elements
-          P0%meas(P0_KE, tmp) =  P0%meas(P0_KE, tmp) + &
-               t_up(A(j)) * G_up(r(j), i)               + &
-               t_dn(A(j)) * G_dn(r(j), i)
-          P0%meas(P0_hopping_energy, tmp) = P0%meas(P0_hopping_energy, tmp) + &
+          P0%meas(P0_KE, tmp) =  P0%meas(P0_KE, tmp)    + &
                t_up(A(j)) * G_up(r(j), i)               + &
                t_dn(A(j)) * G_dn(r(j), i)
        end do
-       P0%meas(P0_KE, tmp)  = P0%meas(P0_KE, tmp)            - &
-            (mu_up(S%Map(i)) + 0.5d0 * U(S%map(i))) * P0%up(i) - &
-            (mu_dn(S%Map(i)) + 0.5d0 * U(S%map(i))) * P0%dn(i)            
+       !P0%meas(P0_KE, tmp)  = P0%meas(P0_KE, tmp)              - &
+       !     (mu_up(S%Map(i)) + 0.5d0 * U(S%map(i))) * P0%up(i) - &
+       !     (mu_dn(S%Map(i)) + 0.5d0 * U(S%map(i))) * P0%dn(i)            
     end do
 
     !=================================================================!
     ! Total occupancy = nup + ndn
     !=================================================================!
-    P0%meas(P0_DENSITY, tmp) = P0%meas(P0_NUP, tmp) + &                                                                  
-         P0%meas(P0_NDN, tmp)      
+    P0%meas(P0_DENSITY, tmp) = P0%meas(P0_NUP, tmp) + P0%meas(P0_NDN, tmp)      
 
     !=================================================================! 
     ! Magnetisation squared = 1/4 (rho - 2 double_occupancy)    
     !=================================================================! 
-    P0%meas(P0_magnetization_squared, tmp) = 0.25d0 * (P0%meas(P0_density, tmp) -&
-     2 * P0%meas(P0_double_occupancy, tmp))
-
+    P0%meas(P0_m_squared, tmp) = 2.5d-1 * ( P0%meas(P0_DENSITY, tmp) - 2.d0 * P0%meas(P0_NUD, tmp) )
+    
     !=================================================================!
-    ! Total energy = hopping energy + potential energy - 
-    ! - sum_{i \sigma} (\mu_{up i \sigma} n_{dn i \sigma})
+    ! Total energy, in particle-hole symmetric form, excluding chemical potential terms  
     !=================================================================!
-    P0%meas(P0_ENERGY, tmp) = P0%meas(P0_hopping_energy, tmp) + &
-         P0%meas(P0_potential_energy, tmp)
+    P0%meas(P0_ENERGY, tmp) = P0%meas(P0_KE, tmp) + P0%meas(P0_PE, tmp)
     do i = 1, n
-      P0%meas(P0_ENERGY, tmp) = P0%meas(P0_ENERGY, tmp) - &
-       (mu_up(S%Map(i)) * P0%up(i) + mu_dn(S%Map(i)) * P0%dn(i))
+      P0%meas(P0_ENERGY, tmp) = P0%meas(P0_ENERGY, tmp)   + &
+           5.d-1 * U(S%Map(i)) * ( P0%up(i) + P0%dn(i) )  + &
+           2.5d-1 * U(S%Map(i))                           !- &
+          !(mu_up(S%Map(i)) * P0%up(i) + mu_dn(S%Map(i)) * P0%dn(i))
     enddo
+
+
     !=========================================!
     ! Chi_thermal 
     !=========================================!
-
     ! Fill h_up, h_dn with hopping matrix elements
     h_up = ZERO
     h_dn = ZERO
