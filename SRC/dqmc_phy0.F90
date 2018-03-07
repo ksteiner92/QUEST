@@ -123,7 +123,7 @@ module DQMC_Phy0
        "                        double occupancy : ", &
        "                kinetic (hopping) energy : ", &
        "            potential (U*Nup*Ndn) energy : ", &
-       "  PH-symm total density (inc. chem potl) : ", &
+       "   PH-symm total energy (inc. chem potl) : ", &
        "                             chi_thermal : ", &
        "                           specific heat : ", &
        "                       (magnetization)^2 : ", &
