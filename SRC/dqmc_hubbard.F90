@@ -57,101 +57,109 @@ module DQMC_Hubbard
      ! ==========================================================
 
      ! Parameters for problem size
-     integer  :: n                        ! Number of sites
-     integer  :: L                        ! Number of time slices
+     integer           :: n               ! Number of sites
+     integer           :: L               ! Number of time slices
 
      ! Parameters for Hubbard model
-     integer  :: n_U
-     real(wp), pointer :: U(:)        ! Param of Potential energy
-     integer  :: n_t                  ! Number of hopping
-     real(wp), pointer :: t_up(:)     ! Param of Kinetic energy
-     real(wp), pointer :: t_dn(:)     ! Param of Kinetic energy
-     integer  :: n_mu
-     real(wp), pointer :: mu_up(:)    ! Param of Chemical energy
-     real(wp), pointer :: mu_dn(:)    ! Param of Chemical energy
-     real(wp) :: dtau                 ! size of time slice
-     integer,  pointer :: HSF (:,:)   ! Hubbard-Stratonovich Field
-     real(wp), pointer :: CHSF (:,:)  ! continuous Hubbard-Stratonovich Field
-     integer  :: HSFtype
-     logical  :: outputHSF            ! flag for output HSF
-     logical  :: continuous           ! flag for continuous HSF
-     real(wp) :: delta1               ! parameter for contunuous HSF 
-     real(wp) :: delta2               ! parameter for contunuous HSF 
-     real(wp), pointer :: lambda(:)   ! parameter for contunuous HSF 
-     integer  :: n_start, n_end 
+     integer           :: n_U
+     real(wp), pointer :: U(:)            ! Hubbard U, or el-ph coupling in the case of Holstein model
+     integer           :: n_t             ! Number of hoppings 
+     real(wp), pointer :: t_up(:)         ! spin-up hopping 
+     real(wp), pointer :: t_dn(:)         ! spin-down hopping      
+     integer           :: n_mu          
+     real(wp), pointer :: mu_up(:)        ! spin-up chemical potential      
+     real(wp), pointer :: mu_dn(:)        ! spin-down chemical potential 
+     real(wp)          :: dtau            ! imaginary time step size
+     integer,  pointer :: HSF (:,:)       ! discrete Hubbard-Stratonovich Fields
+     real(wp), pointer :: CHSF (:,:)      ! continuous Hubbard-Stratonovich Fields
+     integer           :: HSFtype         ! flag for HSF type
+     logical           :: outputHSF       ! flag for output HSF
+     logical           :: continuous      ! flag for continuous HSF
+     real(wp)          :: delta1          ! continuous field local move step size
+     real(wp)          :: delta2          ! continuous field global move step size
+     real(wp), pointer :: lambda(:)       ! parameter for contunuous HSF 
+     integer           :: n_start, n_end 
+     
+     real(wp)          :: omega           ! phonon dispersion
+     
      
      ! Underline structure  
-     type(Struct) :: S                ! Lattice structure
+     type(Struct)      :: S               ! Lattice structure
      
 
      ! For Green function computation
-     type(matB)   :: B_up             ! 
-     type(seqB)   :: SB_up            ! Sequential Bs 
-     type(matB)   :: B_dn             ! 
-     type(seqB)   :: SB_dn            ! Sequential Bs 
-     type(G_fun)  :: G_up             ! Green's fun for spin up
-     type(G_fun)  :: G_dn             ! Green's fun for spin down
-     real(wp), pointer :: V_up(:,:)   !
-     real(wp), pointer :: V_dn(:,:)   !
+     type(matB)        :: B_up            ! 
+     type(seqB)        :: SB_up           ! Sequential Bs 
+     type(matB)        :: B_dn            ! 
+     type(seqB)        :: SB_dn           ! Sequential Bs 
+     type(G_fun)       :: G_up            ! Green's fun for spin up
+     type(G_fun)       :: G_dn            ! Green's fun for spin down
+     real(wp), pointer :: V_up(:,:)  
+     real(wp), pointer :: V_dn(:,:)   
      
      ! Parameters for random number
-     integer  :: idum                 ! random seed for ran2
-     integer  :: seed(4)              ! random seed for ran1
+     integer           :: idum            ! random seed for ran2
+     integer           :: seed(4)         ! random seed for ran1
 
      ! Auxiliary variables
-     real(wp), pointer :: explook(:,:) ! Lookup table for computing V
-     logical  :: comp_dn               ! indicator for wheather computing
-                                       ! G_dn or not
-     logical  :: neg_u                 ! are all U_i < 0 ?
-                                       ! CAVEAT: mixed sign may not work
+     real(wp), pointer :: explook(:,:)    ! Lookup table for computing V
+     logical           :: comp_dn         ! indicator for wheather computing
+                                          ! G_dn or not
+     logical           :: neg_u           ! are all U_i < 0 ?
+                                          ! CAVEAT: mixed sign may not work
 
      ! Part 2: Parameters for Monte Carlo algorithm
      ! ============================================
-     integer  :: nWarm                 ! Number of warm up step
-     integer  :: nPass                 ! Number of measurement step
-     integer  :: nTry                  ! Number of global move
-     real(wp) :: gamma                 ! Parameters for Metopolis alg
-     
-     integer  :: nAccept               ! The following parameters  
-     integer  :: nReject               ! are used to dynamically
-                                       ! adjust gamma.
-
-     integer  :: nAcceptGlobal         ! global move acceptance
-     integer  :: nRejectGlobal
+     integer           :: nWarm           ! Number of warm up step
+     integer           :: nPass           ! Number of measurement step
+     integer           :: nTry            ! Number of global move
+     real(wp)          :: gamma           ! Parameters for Metopolis alg
+                      
+     integer           :: nAccept         ! The following parameters  
+     integer           :: nReject         ! are used to dynamically
+                                          ! adjust gamma.
+                      
+     integer           :: nAcceptGlobal   ! global move acceptance
+     integer           :: nRejectGlobal
 
      ! Part 3: Physical measurements
      ! =============================
-     type(Phy0)   :: P0                ! Meas0
-     type(Phy2)   :: P2                ! MeasPair
-     integer      :: nMeas             
-     integer      :: tausk             ! Frequency of performing Phy0 measurement 
-     logical      :: meas2
+     type(Phy0)        :: P0              ! Meas0
+     type(Phy2)        :: P2              ! MeasPair
+     integer           :: nMeas           
+     integer           :: tausk           ! Frequency of performing Phy0 measurement 
+     logical           :: meas2
 
      ! Part 4: Working space
      ! =============================
-     type(Wspace) :: WS
+     type(Wspace)      :: WS
 
      ! Part 5: file units
      ! =============================
-     integer :: OUT_UNIT
-
+     integer           :: OUT_UNIT
 
   end type Hubbard
 
-  integer, parameter :: NO_MEAS0     = -1
+  integer, parameter   :: NO_MEAS0     = -1
 
   ! HSF parameter
-  integer, parameter:: HSF_OUTPUT_UNIT = 28
-  integer, parameter:: HSF_INPUT_UNIT  = 27
-  integer, parameter:: HSF_RANDOM_GEN  = -1 ! generate HS fields randomly
-  integer, parameter:: HSF_FROM_FILE   =  1 ! load HS fields from file
-  integer, parameter:: HSF_RESTORE     =  2 ! load HS field and RNG state from file
-  integer, parameter:: HSF_FROM_MEMORY =  0
+  integer, parameter   :: HSF_OUTPUT_UNIT = 28
+  integer, parameter   :: HSF_INPUT_UNIT  = 27
+  integer, parameter   :: HSF_RANDOM_GEN  = -1 ! generate HS fields randomly
+  integer, parameter   :: HSF_FROM_FILE   =  1 ! load HS fields from file
+  integer, parameter   :: HSF_RESTORE     =  2 ! load HS field and RNG state from file
+  integer, parameter   :: HSF_FROM_MEMORY =  0
 
-  integer, parameter:: HSF_DISC  =  0
-  integer, parameter:: HSF_CONT  =  1
+  integer, parameter   :: HSF_DISC  =  0
+  integer, parameter   :: HSF_CONT  =  1
 
-
+  integer              :: SimType              ! model selection flag.
+                                               !   SimType == 0: Hubbard model
+                                               !   SimType == 1: Holstein model
+  real(wp)             :: CHSF0                ! phonon field overall scale
+  real(wp)             :: norm_phonon(2)       ! normalization factor of phonon terms
+                                               !   1 => kinetic energy term
+                                               !   2 => potential energy term
 contains
 
   !---------------------------------------------------------------------!
@@ -182,12 +190,12 @@ contains
     integer :: seed, nOrth, nWrap, nTry, nBin, nMeas, ntausk, ssxx
     character(len=slen) :: HSF_ipt, HSF_opt
     logical :: valid
-    real(wp), pointer :: t_up(:) => null()
-    real(wp), pointer :: t_dn(:) => null()  
-    real(wp), pointer :: U(:) => null()   
+    real(wp), pointer :: t_up(:)  => null()
+    real(wp), pointer :: t_dn(:)  => null()  
+    real(wp), pointer :: U(:)     => null()   
     real(wp), pointer :: mu_up(:) => null() 
     real(wp), pointer :: mu_dn(:) => null() 
-    real(wp) :: dtau, errrate, difflim, gamma, delta1, delta2    
+    real(wp) :: dtau, errrate, difflim, gamma, delta1, delta2, omega 
 
     ! ... Executable ...
 
@@ -197,25 +205,27 @@ contains
     !call DQMC_open_file(outname, 'unknown', Hub%OUT_UNIT)
 
     ! integer parameters
-    call CFG_Get(cfg, "HSF",     HSF)
-    call CFG_Get(cfg, "L",       L)
-    call CFG_Get(cfg, "nwarm",   nWarm)
-    call CFG_Get(cfg, "npass",   nPass)
-    call CFG_Get(cfg, "tdm",     tdm)
-    call CFG_Get(cfg, "nbin",    nBin)
-    call CFG_Get(cfg, "ntry",    nTry)
-    call CFG_Get(cfg, "seed",    seed)
-    call CFG_Get(cfg, "nwrap",   nWrap)
-    call CFG_Get(cfg, "north",   nOrth)
-    call CFG_Get(cfg, "gamma",   gamma)
-    call CFG_Get(cfg, "accept",  accept)
-    call CFG_Get(cfg, "reject",  reject)
-    call CFG_Get(cfg, "HSFtype", HSFtype)
-    call CFG_Get(cfg, "delta1",  delta1)
-    call CFG_Get(cfg, "delta2",  delta2)
-    call CFG_Get(cfg, "ssxx",    ssxx)
-    call CFG_Get(cfg, "fixwrap", fixw)
-    call CFG_Get(cfg, "tausk",   ntausk)
+    call CFG_Get(cfg, "HSF",      HSF)
+    call CFG_Get(cfg, "L",        L)
+    call CFG_Get(cfg, "nwarm",    nWarm)
+    call CFG_Get(cfg, "npass",    nPass)
+    call CFG_Get(cfg, "tdm",      tdm)
+    call CFG_Get(cfg, "nbin",     nBin)
+    call CFG_Get(cfg, "ntry",     nTry)
+    call CFG_Get(cfg, "seed",     seed)
+    call CFG_Get(cfg, "nwrap",    nWrap)
+    call CFG_Get(cfg, "north",    nOrth)
+    call CFG_Get(cfg, "gamma",    gamma)
+    call CFG_Get(cfg, "accept",   accept)
+    call CFG_Get(cfg, "reject",   reject)
+    call CFG_Get(cfg, "HSFtype",  HSFtype)
+    call CFG_Get(cfg, "delta1",   delta1)
+    call CFG_Get(cfg, "delta2",   delta2)
+    call CFG_Get(cfg, "ssxx",     ssxx)
+    call CFG_Get(cfg, "fixwrap",  fixw)
+    call CFG_Get(cfg, "tausk",    ntausk)
+    call CFG_Get(cfg, "SimType",  SimType)
+    call CFG_Get(cfg, "omega",    omega)
 
     ! Array parameters
     call CFG_Get(cfg, "t_up",    n_t,  t_up)
@@ -223,7 +233,7 @@ contains
     call CFG_Get(cfg, "U",       n_U,  U)
     call CFG_Get(cfg, "mu_up",   n_mu, mu_up)
     call CFG_Get(cfg, "mu_dn",   n_mu, mu_dn)
-    
+
     ! Real parameters
     call CFG_Get(cfg, "dtau",    dtau)
     call CFG_Get(cfg, "difflim", difflim)
@@ -235,6 +245,14 @@ contains
        nBin = 1
        call CFG_set(cfg, "nbin",  nBin)
     endif
+
+    if ( SimType .eq. Holstein_model .and. HSFtype .eq. 0 ) then
+      write(*,*)
+      write(*,"(' Input parameter error:')")
+      write(*,"('   SimType =', i3)") SimType 
+      write(*,"('   HSFtype =', i3)") HSFtype
+      call DQMC_Error(" Must set HSFtype=1 in Holstein mode (SimType=1).", 1)
+    end if
 
     if (HSF == HSF_FROM_FILE .or. HSF == HSF_RESTORE) then
        ! open input file
@@ -260,24 +278,26 @@ contains
        open(HSF_OUTPUT_UNIT, FILE = trim(HSF_opt))
     end if
 
+    nmeas = 1
     ! Deactivate measurements during sweep if tdm is on
-    nmeas = 1; if (tdm > 0) nmeas = 0
+    if (tdm > 0) nmeas = 0
 
     ! call the function
     call DQMC_Hub_Init(Hub, U, t_up, t_dn, mu_up, mu_dn, L, n_t, n_U, n_mu, dtau, &
        HSF, nWarm, nPass, nMeas, nTry, nBin, ntausk, seed, nOrth, nWrap, fixw, &
-       errrate, difflim, gamma, accept, reject, delta1, delta2, ssxx, HSFtype)
+       errrate, difflim, gamma, accept, reject, delta1, delta2, ssxx, HSFtype, omega)
     
     call CFG_Set(cfg, "n", Hub%n)
 
     deallocate(t_up, t_dn, mu_up, mu_dn, U)
+
   end subroutine DQMC_Hub_Config
 
   !---------------------------------------------------------------------!
 
   subroutine DQMC_Hub_Init(Hub, U, t_up, t_dn, mu_up, mu_dn, L, n_t, n_U, n_mu, dtau, &
        HSF_IPT, nWarm, nPass, nMeas, nTry, nBin, ntausk, seed, nOrth, nWrap, fixw, &
-       errrate, difflim, gamma, accept, reject, delta1, delta2, ssxx, HSFtype)
+       errrate, difflim, gamma, accept, reject, delta1, delta2, ssxx, HSFtype, omega)
     !
     ! Purpose
     ! =======
@@ -311,14 +331,18 @@ contains
     integer,  intent(in)  :: HSF_IPT, seed, ssxx
     integer,  intent(in)  :: nWarm, nPass, nOrth, nTry, HSFtype
     integer,  intent(in)  :: nMeas, nBin, ntausk, nWrap, fixw, accept, reject
-    real(wp), intent(in)  :: errrate, difflim, gamma, delta1, delta2
+    real(wp), intent(in)  :: errrate, difflim, gamma, delta1, delta2, omega
 
     ! ... Local scalar ...
     integer  :: n, i, j, HSF, ilb, val(8)
     real(wp) :: temp, lambda 
-    real(wp) :: Map_up(Hub%S%nSite), Map_dn(Hub%S%nSite)
+    real(wp) :: Map_up(Hub%S%nSite), Map_dn(Hub%S%nSite), Uhubb(Hub%S%nSite)
     logical  :: lex
     character(80) :: msg
+
+    ! phonon field related
+    real(wp), allocatable :: CHSFtmp(:)
+
 #   ifdef _QMC_MPI
        SPRNG_POINTER junkPtr
 #   endif
@@ -336,6 +360,9 @@ contains
     Hub%dtau     = dtau
     Hub%delta1   = delta1
     Hub%delta2   = delta2
+    Hub%omega    = omega
+
+    allocate(CHSFtmp(n))
 
     ! t parameter
     if (n_t /= Hub%S%n_t) then
@@ -374,26 +401,53 @@ contains
     do i = 1, n
        Map_up(i) = mu_up(Hub%S%Map(i))
        Map_dn(i) = mu_dn(Hub%S%Map(i))
+       Uhubb(i)  = abs(Hub%U(Hub%S%Map(i)))
     end do
 
-    Hub%comp_dn = .true.
+    if (SimType .eq. Hubbard_model) then
 
-    if ( all(U<ZERO+1.d-6) )then
-       !Negative U and U=0
-       Hub%neg_u = .true.
-       if( maxval(abs(t_up-t_dn))<1.d-6 .and. maxval(abs(mu_up-mu_dn))<1.d-6 ) then
-          !Gup and Gdn are identical. Do not compute Gdn.
-          Hub%comp_dn = .false.
-       endif
-    elseif ( all(U>ZERO-1.d-6))then
-       !Positive U 
-       Hub%neg_u   = .false.
-       if ( all(abs(mu_up) < 1.d-6) .and. all(abs(mu_dn) < 1.d-6) .and. &
-            maxval(abs(t_up-t_dn))<1.d-6 .and. Hub%S%checklist(STRUCT_PHASE) ) then
-          Hub%comp_dn = .false.
-       end if
-    else
-       stop 'All U''s must have the same sign (or be zero)'
+      Hub%comp_dn = .true.
+
+      if ( all(U < ZERO+1.d-6) )then
+         !Negative U and U=0
+         Hub%neg_u = .true.
+
+         ! G_up and G_dn are identical. Do not compute G_dn.
+         if( maxval(abs(t_up-t_dn)) < 1.d-6 .and. maxval(abs(mu_up-mu_dn)) < 1.d-6 ) then
+            Hub%comp_dn = .false.
+         endif
+      elseif ( all(U > ZERO-1.d-6))then
+         !Positive U 
+         Hub%neg_u   = .false.
+
+         ! Don't compute G_dn on half-filled (mu=0) bipartite lattices
+         if ( all(abs(mu_up) < 1.d-6) .and. all(abs(mu_dn) < 1.d-6) .and. &
+              maxval(abs(t_up-t_dn)) < 1.d-6 .and. Hub%S%checklist(STRUCT_PHASE) ) then
+            Hub%comp_dn = .false.
+         end if
+      else
+         stop 'All U''s must have the same sign (or be zero)'
+      end if
+
+    else if (SimType .eq. Holstein_model) then
+      if ( any(U < -1.d-6) )then
+        write(*,*)
+        write(*,*) ' Electron-phonon couplings must be positive.'
+        write(*,*) ' Stop.'
+        stop
+      end if
+
+      ! No need to compute G_dn for in the Holstein mode.
+      Hub%comp_dn = .false.
+      Hub%neg_u   = .true.
+
+      ! Normalization factors of the phonon action
+      norm_phonon(1) = 0.5_wp/dtau
+      norm_phonon(2) = 0.5_wp*omega*omega*dtau
+
+      ! Length scale of phonon displacement
+      CHSF0 = 1.0_wp /omega/(exp(float(L)*dtau*omega)-1.0_wp) + 0.5_wp/omega
+      CHSF0 = 2.0_wp*sqrt(CHSF0)
     end if
 
     !write(*,*)
@@ -475,7 +529,7 @@ contains
        else
           ! If file does not exist, give a warning message.
           call DQMC_Warning("HSF file does not exist. &
-               & Use random generated values.", HSF)
+               & Use randomly generated values.", HSF)
           HSF = HSF_RANDOM_GEN
        end if
     end if
@@ -485,48 +539,68 @@ contains
        ilb = 1
 
        ! discrete case
-       if (HSFtype == HSF_DISC) then
+       if (HSFtype .eq. HSF_DISC) then
           allocate(Hub%HSF(n,L))
           Hub%HSF = 1
           do i = 1, Hub%L   
              call ran0(n, Hub%WS%R5, Hub%seed)
              where(Hub%WS%R5 > HALF) Hub%HSF(:,i) = -1
           end do
-       else
+       else if (HSFtype .eq. HSF_CONT) then
           ! continuous case
           allocate(Hub%CHSF(n,L))
-          do i = 1, Hub%L   
-             call ran1(n, Hub%CHSF(:,i), Hub%seed)
-          end do          
+          if ( SimType .eq. Hubbard_model ) then
+            do i = 1, Hub%L   
+               call ran1(n, Hub%CHSF(:,i), Hub%seed)
+            end do          
+          else if ( SimType .eq. Holstein_model ) then
+            call ran1(n, CHSFtmp, Hub%seed)
+            do i = 1, Hub%L
+              Hub%CHSF(:,i) = CHSF0*CHSFtmp
+            end do
+          end if
        end if
     end if
 
     ! Initialize lookup table
-    if  (HSFtype == HSF_DISC) then
+    if  (HSFtype .eq. HSF_DISC) then
        nullify(Hub%explook)
        allocate(Hub%explook(-2:2,1:n_U))
        do j = 1, n_U
           temp = exp(dtau*abs(U(j))*HALF)    
           lambda = log(temp+sqrt(temp*temp-ONE))
           do i = -2, 2
-             Hub%explook(i,j)=exp(i*lambda)
+             Hub%explook(i,j)=exp(float(i)*lambda)
           end do
           ! for use by U<0, save lambda in explook(0, j)
           Hub%explook(0, j) = lambda
        end do
-    else
+    else if (HSFtype .eq. HSF_CONT) then
        allocate(Hub%lambda(n_U))
-       do j = 1, n_U
-          Hub%lambda(j) = sqrt(dtau*U(j))
-       end do
+       ! Hubbard model mode.
+       if (SimType .eq. Hubbard_model) then
+         do j = 1, n_U
+            Hub%lambda(j) = sqrt(dtau*abs(U(j)))
+         end do
+       ! Holstein model mode. Here U should be understood as the electron-phonon couplings.
+       elseif (simType .eq. Holstein_model) then
+         do j = 1, n_U
+            Hub%lambda(j) = U(j)*dtau
+         end do
+       end if
     end if
 
     ! Initialize V matrices
     call DQMC_Hub_Init_Vmat(Hub)
 
     ! Initialize Green functions
-    call DQMC_B_Init(n, Hub%B_up, Hub%WS, Hub%S%T, Hub%S%ckb, Hub%t_up, Map_up, dtau)
-    call DQMC_B_Init(n, Hub%B_dn, Hub%WS, Hub%S%T, Hub%S%ckb, Hub%t_dn, Map_dn, dtau)
+    if ((SimType .eq. Hubbard_model) .and. Hub%neg_u .and. (HSFType .eq. HSF_CONT)) then
+      call DQMC_B_Init(n, Hub%B_up, Hub%WS, Hub%S%T, Hub%S%ckb, Hub%t_up, Map_up, dtau, Uhubb)
+      call DQMC_B_Init(n, Hub%B_dn, Hub%WS, Hub%S%T, Hub%S%ckb, Hub%t_dn, Map_dn, dtau, Uhubb)
+    else
+      call DQMC_B_Init(n, Hub%B_up, Hub%WS, Hub%S%T, Hub%S%ckb, Hub%t_up, Map_up, dtau)
+      call DQMC_B_Init(n, Hub%B_dn, Hub%WS, Hub%S%T, Hub%S%ckb, Hub%t_dn, Map_dn, dtau)
+    end if
 
     call DQMC_SeqB_Init(n, Hub%L, nOrth, Hub%B_up, Hub%SB_up, Hub%WS)
     call DQMC_SeqB_Init(n, Hub%L, nOrth, Hub%B_dn, Hub%SB_dn, Hub%WS)
@@ -558,6 +632,8 @@ contains
     ! Initialize simulation range
     Hub%n_start = 1
     Hub%n_end   = n
+
+    deallocate(CHSFtmp)
 
   end subroutine DQMC_Hub_Init
 
@@ -870,7 +946,12 @@ contains
        else
           write(FMT, "('(a30,f19.6,(',I3,'(f12.6)))')") Hub%n_U - 1
        end if
-       write(OPT,FMT)         "                          U : ", Hub%U
+       if (SimType .eq. Hubbard_model) then
+         write(OPT,FMT)         "                          U : ", Hub%U
+       elseif (SimType .eq. Holstein_model) then
+         write(OPT,FMT)         "      el-ph coupling lambda : ", Hub%U
+         write(OPT,FMT)         "     phonon frequency omega : ", Hub%omega
+       end if
        if (Hub%n_t == 1) then
           FMT = FMT_STRDBL
        else
@@ -894,7 +975,9 @@ contains
        write(OPT,FMT_STRINT)  "   Frequency of measurement : ", Hub%nMeas
        write(OPT,FMT_STRINT)  "                Random seed : ", Hub%idum
        write(OPT,FMT_STRINT)  " Frequency of recomputing G : ", Hub%G_up%nWrap
-       write(OPT,FMT_STRINT)  "Global move number of sites : ", Hub%nTry
+       if (Hub%nTry .gt. 0) then
+         write(OPT,FMT_STRINT)  "Global move number of sites : ", Hub%nTry
+       end if
        write(OPT,FMT_STRINT)  "               Accept count : ", Hub%naccept
        write(OPT,FMT_STRINT)  "               Reject count : ", Hub%nreject
        write(OPT,FMT_STRDBL)  "    Approximate accept rate : ", &
@@ -913,6 +996,9 @@ contains
           write(OPT,*)        "        Type of matrix HSF : continuous"
           write(OPT,*)        "                   delta 1 : ", Hub%delta1
           write(OPT,*)        "                   delta 2 : ", Hub%delta2
+       end if
+       if ( SimType .eq. Holstein_model ) then
+          write(OPT,*)        "        phonon field scale : ", CHSF0
        end if
 
     endif
@@ -951,7 +1037,7 @@ contains
     call DQMC_Hub_OutputParam(Hub, OPT)
     write(OPT, FMT_DBLINE)
 
-    call DQMC_Phy0_Print(Hub%P0, Hub%S, OPT)
+    call DQMC_Phy0_Print(Hub%P0, Hub%S, SimType, OPT)
     call DQMC_Phy2_Print(Hub%P2, Hub%S%wlabel, OPT)
 
   end subroutine DQMC_Hub_Print
@@ -990,8 +1076,8 @@ contains
     ! Arguments
     ! =========
     !
-    type(Hubbard), intent(inout),target  :: Hub ! Hubbard model
-    integer, intent(in)           :: nMeas0     ! Duration of measurement
+    type(Hubbard), intent(inout),target  :: Hub      ! Hubbard class
+    integer, intent(in)                  :: nMeas0   ! Duration of measurement
 
     ! ... paremeters ...
     integer, parameter  :: DQMC_CHECK_ITER  = 10000
@@ -1041,27 +1127,27 @@ contains
     ! Step 0: Setup alias !
     !=====================!
 
-    G_up => Hub%G_up%G
-    U_up => Hub%G_up%U
-    W_up => Hub%G_up%W
-    V_up => Hub%G_up%V
+    G_up     => Hub%G_up%G
+    U_up     => Hub%G_up%U
+    W_up     => Hub%G_up%W
+    V_up     => Hub%G_up%V
     blksz_up => Hub%G_up%blksz
-    sgn_up  => Hub%G_up%sgn
+    sgn_up   => Hub%G_up%sgn
 
-    G_dn => Hub%G_dn%G
-    U_dn => Hub%G_dn%U
-    W_dn => Hub%G_dn%W
-    V_dn => Hub%G_dn%V
+    G_dn     => Hub%G_dn%G
+    U_dn     => Hub%G_dn%U
+    W_dn     => Hub%G_dn%W
+    V_dn     => Hub%G_dn%V
     blksz_dn => Hub%G_dn%blksz
     sgn_dn   => Hub%G_dn%sgn
 
-    ranlist => Hub%WS%R7
-    gamma = Hub%gamma
-    explook => Hub%explook
-    HSF     => Hub%HSF
-    comp_dn = Hub%comp_dn
-    neg_u   = Hub%neg_u
-    map    => Hub%S%map
+    ranlist  => Hub%WS%R7
+    explook  => Hub%explook
+    HSF      => Hub%HSF
+    map      => Hub%S%map
+    gamma    =  Hub%gamma
+    comp_dn  =  Hub%comp_dn
+    neg_u    =  Hub%neg_u
 
     n = Hub%n    
     L = Hub%L
@@ -1082,7 +1168,6 @@ contains
 
           if(nmeas0>0)then
              ! Construct G_dn for mu = 0 and U > 0 using particle-hole symmetry
-             ! 05/15/2012, C.C.:
              ! Note that ( .not.neg_u .and. not.comp_dn ) implies that S%P is defined, i.e.
              ! S%checklist(STRUCT_PHASE) = 'T'.
              if (.not.neg_u .and. .not.comp_dn) call DQMC_GFun_CopyUp(Hub%G_dn, Hub%G_up, Hub%S%P)
@@ -1094,7 +1179,7 @@ contains
              endif
 
              ! Basic measurement
-             call DQMC_Phy0_Meas(Hub%n, Hub%P0, Hub%G_up%GS, Hub%G_dn%GS, Hub%U, &
+             call DQMC_Phy0_Meas(Hub%n, Hub%P0, Hub%G_up%GS, Hub%G_dn%GS, Hub%U,   &
                   Hub%mu_up, Hub%mu_dn, Hub%t_up, Hub%t_dn, sgn_up, sgn_dn, Hub%S)
 
              if (Hub%meas2) then
@@ -1127,6 +1212,7 @@ contains
        !==============================!
        call ran0(n, ranlist, Hub%seed)
 
+       ! Loop over lattice sites
        do j = Hub%n_start, Hub%n_end
           ! Try the new configuration by single spin-flip sampling 
           ! at site j at time slice i.
@@ -1316,7 +1402,6 @@ contains
        det_dn = det_up
        Hub%G_dn%sgn = Hub%G_up%sgn
     else
-       ! 05/15/2012, C.C.:
        ! Note that here we have .not.neg_u and not.comp_dn.
        ! This implies that S%P is defined, i.e. S%checklist(STRUCT_PHASE) = 'T'.
        ! So we can safely call DQMC_Gfun_CopyUp() which uses particle-hole symmetry.
@@ -1382,7 +1467,6 @@ contains
           Hub%G_dn%sgn = Hub%G_up%sgn
           new_dn = new_up
        else
-          ! 05/15/2012, C.C.:
           ! Note that here we have (.not.neg_u) and (.not.comp_dn).
           ! This implies that S%P is defined, i.e. S%checklist(STRUCT_PHASE) = 'T'.
           ! So we can safely call DQMC_Gfun_CopyUp() which uses particle-hole symmetry.
@@ -1496,8 +1580,8 @@ contains
     ! Arguments
     ! =========
     !
-    type(Hubbard), intent(inout),target  :: Hub ! Hubbard model
-    integer, intent(in)           :: nMeas0     ! Duration of measurement
+    type(Hubbard), intent(inout),target  :: Hub        ! Hubbard model
+    integer, intent(in)                  :: nMeas0     ! Duration of measurement
 
     ! ... paremeters ...
     integer, parameter  :: DQMC_CHECK_ITER  = 10000
@@ -1509,12 +1593,12 @@ contains
 
     integer  :: i, j, k, n, L         ! Loop iterator
     integer  :: cnt                   ! Counter for measurement
-    integer  :: accept_cnt            ! Counter for accept in Met-alg
+    integer  :: accept, reject        ! Counter for accept in Met-alg
     real(wp) :: accrat
     real(wp) :: alpha_up, alpha_dn    ! Change of configuration
     real(wp) :: p, randn              ! Probability of changing
     real(wp) :: r_up, r_dn, r         ! Ratio of determinant
-    real(wp) :: gjj                   ! (j,j) element of G_up or G_dn
+    real(wp) :: gjj_up, gjj_dn        ! (j,j) element of G_up or G_dn
     
     ! To speed up the computation
     real(wp), pointer :: G_up(:,:) 
@@ -1534,8 +1618,8 @@ contains
     real(wp), pointer :: CHSF(:,:) 
     real(wp), pointer :: lambda(:) 
     integer,  pointer :: map(:)    
-    real(wp)  :: gamma, edx, delta,  dx, dE
-    logical   :: comp_dn
+    real(wp)          :: gamma, edx, delta1, dx, dE, dPE, dKE
+    logical           :: comp_dn, neg_u
 
     ! ... Executable ...
 
@@ -1543,33 +1627,40 @@ contains
     ! Step 0: Setup alias !
     !=====================!
 
-    G_up => Hub%G_up%G
-    U_up => Hub%G_up%U
-    W_up => Hub%G_up%W
-    V_up => Hub%G_up%V
+    G_up     => Hub%G_up%G
+    U_up     => Hub%G_up%U
+    W_up     => Hub%G_up%W
+    V_up     => Hub%G_up%V
     blksz_up => Hub%G_up%blksz
     sgn_up   => Hub%G_up%sgn
 
-    G_dn => Hub%G_dn%G
-    U_dn => Hub%G_dn%U
-    W_dn => Hub%G_dn%W
-    V_dn => Hub%G_dn%V
+    G_dn     => Hub%G_dn%G
+    U_dn     => Hub%G_dn%U
+    W_dn     => Hub%G_dn%W
+    V_dn     => Hub%G_dn%V
     blksz_dn => Hub%G_dn%blksz
     sgn_dn   => Hub%G_dn%sgn
 
-    ranlist => Hub%WS%R7
-    gamma = Hub%gamma
-    CHSF    => Hub%CHSF
-    comp_dn = Hub%comp_dn
-    map     => Hub%S%map
+    ranlist  => Hub%WS%R7
+    CHSF     => Hub%CHSF
+    map      => Hub%S%map
+    lambda   => Hub%lambda
 
+    comp_dn  =  Hub%comp_dn
+    neg_u    =  Hub%neg_u
+    gamma    =  Hub%gamma
+    n        =  Hub%n    
+    cnt      =  nMeas0
+    L        =  Hub%L
+    delta1   =  Hub%delta1
 
-    n   = Hub%n    
-    cnt = nMeas0
-    L   = Hub%L
-    lambda => Hub%lambda
-    delta  = Hub%delta1
+    ! This is a reminder:
+    ! comp_dn = .false. if
+    !   1) U <= 0
+    !   2) U > 0 and mu = 0 and bipartitle lattice
+    !   3) Holstein model
 
+    ! Loop over time slices
     do i = 1, L
        !==============================! 
        ! Step 1: Swap the slice of G  !
@@ -1584,34 +1675,74 @@ contains
        !==============================!
        ! Step 2: Metropolis Algorithm !
        !==============================!
-       accept_cnt = 0
+       accept = 0
+       reject = 0
 
        call ran0(2*n, ranlist, Hub%seed)
 
+       ! Loop over lattice sites
        do j = Hub%n_start, Hub%n_end
-          ! Try the new configuration by single spin-flip sampling 
-          ! at site j at time slice i.
-          ! 
           ! propose a new move
-          dx  = delta*(ranlist(j+n)-HALF)
-          edx = exp(lambda(map(j))*dx)
-          alpha_up = edx - ONE
-          alpha_dn = ONE/edx - ONE
+          dx = delta1*(ranlist(j+n)-HALF)
 
-          gjj = DQMC_Gfun_Getjj(n, j, blksz_up, G_up, U_up, W_up)
+          ! Hubbard model mode
+          if ( SimType .eq. Hubbard_model ) then
+             ! Remember positive and negative U use different HS transfoamtaions
+             if (neg_u) then
+               alpha_up = exp( lambda(map(j))*dx ) - ONE
+               alpha_dn = alpha_up
+             else
+               alpha_up = exp( lambda(map(j))*dx ) - ONE
+               alpha_dn = exp(-lambda(map(j))*dx ) - ONE
+               !alpha_dn = ONE/edx - ONE
+             end if
 
-          r_up = ONE + (ONE - gjj)*alpha_up
-          if (comp_dn) then
-             gjj = DQMC_Gfun_Getjj(n, j, blksz_dn, G_dn, U_dn, W_dn)
-             r_dn = ONE + (ONE - gjj)*alpha_dn
-          else
-             r_dn = ONE + gjj*alpha_dn
+             ! Compute the ratio of new and old partition functions
+             gjj_up = DQMC_Gfun_Getjj(n, j, blksz_up, G_up, U_up, W_up)
+             r_up   = ONE + (ONE - gjj_up)*alpha_up
+
+             ! Need to compute r_dn explicitly if not on the half-filled bipartite lattices
+             if (comp_dn) then
+                gjj_dn = DQMC_Gfun_Getjj(n, j, blksz_dn, G_dn, U_dn, W_dn)
+                r_dn = ONE + (ONE - gjj_dn)*alpha_dn
+             ! Spin up and down ratio are identical for negative U
+             else if (neg_u) then
+                r_dn = r_up
+             ! For positive U and on half-filled bipartite lattices, r_dn can be computed from gjj_up
+             else
+                r_dn = ONE + gjj_up*alpha_dn
+             end if
+            
+             ! dE = [(x+dx)^2-x^2]/2 = x*dx + dx*dx/2
+             dE = CHSF(j,i)*dx + 0.5_wp*dx*dx 
+
+          ! Holstein model
+          else if ( SimType .eq. Holstein_model) then
+             alpha_up = exp( lambda(map(j))*dx ) - ONE
+             gjj_up = DQMC_Gfun_Getjj(n, j, blksz_up, G_up, U_up, W_up)
+             r_up   = ONE + (ONE - gjj_up)*alpha_up
+
+             alpha_dn = alpha_up
+             r_dn     = r_up
+            
+             ! phonon potential energy difference
+             dPE = 2.0_wp*CHSF(j,i)*dx + dx*dx
+            
+             ! phonon kinetic energy difference
+             if ( i .eq. 1 ) then
+               !dKE = 2.0_wp*( 2.0_wp*CHSF(j,i)*dx + dx*dx - dx*( CHSF(j, L)   + CHSF(j,i+1) ) )
+               dKE = 2.0_wp*( dPE - dx*( CHSF(j,  L) + CHSF(j,i+1) ) )
+             elseif ( i .eq. L ) then
+               !dKE = 2.0_wp*( 2.0_wp*CHSF(j,i)*dx + dx*dx - dx*( CHSF(j, i-1) + CHSF(j,1)   ) )
+               dKE = 2.0_wp*( dPE - dx*( CHSF(j,i-1) + CHSF(j,  1) ) )
+             else
+               !dKE = 2.0_wp*( 2.0_wp*CHSF(j,i)*dx + dx*dx - dx*( CHSF(j, i-1) + CHSF(j,i+1) ) )
+               dKE = 2.0_wp*( dPE - dx*( CHSF(j,i-1) + CHSF(j,i+1) ) )
+             end if
+             dE = dKE*norm_phonon(1) + dPE*norm_phonon(2)
           end if
 
-          ! Computing the Gaussian
-          ! dE = [(x+dx)^2-x^2]/2 = x*dx + dx*dx/2
-          dE = CHSF(j,i)*dx - dx*dx/2
-          r  = abs(r_up * r_dn)*exp(-dE)
+          r  = abs(r_up*r_dn)*exp(-dE)
 
           ! Compute the probability
           if(r <= ONE) then
@@ -1624,7 +1755,7 @@ contains
 
           ! Accept 
           if (p > randn) then
-             accept_cnt = accept_cnt + 1
+             accept = accept + 1
 
              if(r_up < ZERO) sgn_up = -sgn_up
              if(r_dn < ZERO) sgn_dn = -sgn_dn
@@ -1636,23 +1767,29 @@ contains
 #if defined(DQMC_ASQRD)
              call cpp_gfun_invalid_cache(Hub%G_up%cpp_data, i)
 #endif
-             V_up(j,i) = V_up(j,i) * (alpha_up + ONE)
+             V_up(j,i) = V_up(j,i)*(alpha_up + ONE)
              Hub%G_up%nModify = i
+             Hub%G_up%det = Hub%G_up%det - log(abs(r_up))
 
-             ! If mu /= zero, then update G_dn as well.
+             ! Update G_dn when it is necessary
              if (comp_dn) then
-                ! Update G_dn
                 call DQMC_UpdateG(j,  alpha_dn/r_dn, Hub%G_dn)
+                Hub%G_dn%det = Hub%G_dn%det - log(abs(r_dn))
              end if
+
+             if (.not. neg_u) then
 #if defined(DQMC_ASQRD)
-             call cpp_gfun_invalid_cache(Hub%G_dn%cpp_data, i)
+               call cpp_gfun_invalid_cache(Hub%G_dn%cpp_data, i)
 #endif
-             V_dn(j,i) = V_dn(j,i) * (alpha_dn + ONE)
+               V_dn(j,i) = V_dn(j,i)*(alpha_dn + ONE)
+               Hub%G_dn%det = Hub%G_dn%det - log(abs(r_dn))
+             end if
              Hub%G_dn%nModify = i
 
-          endif
-          ! If reject, do nothing, move on.          
-
+          else
+            ! If reject, advance the counter then move on.          
+            reject = reject + 1
+          end if
        end do
 
        !============================!
@@ -1666,34 +1803,33 @@ contains
        end if
 
        ! update accept and reject counts
-       Hub%naccept = Hub%naccept + accept_cnt
-       Hub%nreject = Hub%nreject + (n - accept_cnt)
+       Hub%naccept = Hub%naccept + accept
+       Hub%nreject = Hub%nreject + reject
 
-       cnt = cnt - 1
-       if (cnt == 0) then
-          ! construct G_dn for mu = 0
-          if (.not.Hub%neg_u .and. .not.Hub%comp_dn) then
-             do k = 1,n
-                do j = 1,n
-                   G_dn(k,j) = -Hub%S%P(k)*Hub%S%P(j)*G_up(j,k)
-                end do
-                G_dn(k,k) = G_dn(k,k) + ONE 
-             end do
-          end if
-          
-          ! Basic measurement
-          call DQMC_Phy0_Meas(Hub%n, Hub%P0, G_up, G_dn, &
-               Hub%U, Hub%mu_up, Hub%mu_dn, Hub%t_up, Hub%t_dn, sgn_up, sgn_dn, Hub%S)
-          if (Hub%meas2) then
-             ! Pair measurement
-             r = sgn_up*sgn_dn
-             call DQMC_Phy2_Meas(n, Hub%P2%M1, Hub%P2%M2, &
-                  Hub%P2, Hub%S%B, G_up, G_dn, r)
-             
-             ! Reset the counter
-          end if
-          cnt = nMeas0
-       end if
+       !cnt = cnt - 1
+       !if (cnt == 0) then
+       !   ! construct G_dn for mu = 0
+       !   if (.not.Hub%neg_u .and. .not.Hub%comp_dn) then
+       !      do k = 1,n
+       !         do j = 1,n
+       !            G_dn(k,j) = -Hub%S%P(k)*Hub%S%P(j)*G_up(j,k)
+       !         end do
+       !         G_dn(k,k) = G_dn(k,k) + ONE 
+       !      end do
+       !   end if
+       !   ! Basic measurement
+       !   !call DQMC_Phy0_Meas(Hub%n, Hub%P0, G_up, G_dn, &
+       !   !     Hub%U, Hub%mu_up, Hub%mu_dn, Hub%t_up, Hub%t_dn, sgn_up, sgn_dn, Hub%S)
+       !   !if (Hub%meas2) then
+       !   !   ! Pair measurement
+       !   !   r = sgn_up*sgn_dn
+       !   !   call DQMC_Phy2_Meas(n, Hub%P2%M1, Hub%P2%M2, &
+       !   !        Hub%P2, Hub%S%B, G_up, G_dn, r)
+       !   !   
+       !   !end if
+       !   ! Reset the counter
+       !   cnt = nMeas0
+       !end if
        
     end do
     
@@ -1701,7 +1837,7 @@ contains
     ! Step 4: Adjust parameters !
     !===========================!
     if(Hub%naccept+Hub%nreject > DQMC_CHECK_ITER) then
-       accrat = dble(Hub%naccept)/dble(Hub%naccept+Hub%nreject)
+       accrat = float(Hub%naccept)/float(Hub%naccept + Hub%nreject)
        if(accrat > DQMC_ACC_UP .or. accrat < DQMC_ACC_LO)then
           Hub%gamma = Hub%gamma + (accrat - HALF)
           Hub%gamma = dmax1(ZERO,Hub%gamma)
@@ -1712,7 +1848,9 @@ contains
     endif
 
     call DQMC_UpdateWraps(Hub%G_up)
-    call DQMC_UpdateWraps(Hub%G_dn)
+    if (comp_dn) then
+      call DQMC_UpdateWraps(Hub%G_dn)
+    end if
 
   end subroutine DQMC_Hub_Sweep_Cont
 
@@ -1743,33 +1881,38 @@ contains
     integer, intent(in)           :: numTry   ! Number of Try
 
     ! ... Local Variables ...
-    real(wp) :: ranList(2*numTry), rat, ratexp
-    integer  :: i, j, n, L, accept, tmp, nSite
-    real(wp) :: det_up, det_dn, new_up, new_dn
-    real(wp) :: copy_sgn_up, copy_sgn_dn, delta, dx
-    integer, pointer :: map(:) 
-    integer  :: siteList(Hub%n), site(numTry), si, sj
-    integer  :: slice(numTry)
-    real(wp), pointer :: CHSF(:,:) 
-    logical  :: compute_dn
-    real(wp) :: G_dn_tmp(Hub%n,Hub%n)
+    integer, pointer       :: map(:) 
+    real(wp), pointer      :: CHSF(:,:) 
+    integer                :: i, j, n, L, si, sj, tmp, nSite, accept, reject
+    integer                :: siteList(Hub%n)
+    integer                :: slice(numTry), site(numTry)
+    real(wp)               :: ranList(2*numTry), rat, ratexp
+    real(wp)               :: det_up, det_dn, new_up, new_dn
+    real(wp)               :: copy_sgn_up, copy_sgn_dn, delta2, dx
+    real(wp)               :: G_dn_tmp(Hub%n,Hub%n)
+    real(wp)               :: E_old, E_new, PE_old, PE_new, KE_old, KE_new
+
+    logical                :: compute_dn, neg_u
 
     ! ... Executable ...
 
-    n = Hub%n
-    L = Hub%L
-    accept = 0
-    delta = Hub%delta2
     if (numTry <= 0) return
-    Map  => Hub%S%Map
-    CHSF => Hub%CHSF
+
     compute_dn = Hub%comp_dn .or. .not.Hub%neg_u
+    neg_u      = Hub%neg_u
+    n          = Hub%n
+    L          = Hub%L
+    accept     = 0
+    reject     = 0
+    delta2     = Hub%delta2
+    map        => Hub%S%map
+    CHSF       => Hub%CHSF
     
     ! Compute the Green's matrix and the sign
 #if defined(DQMC_ASQRD)
     call cpp_gfun_computeg(Hub%G_up%cpp_data, L, Hub%G_up%sgn, &
          Hub%G_up%G, Hub%V_up, Hub%SB_up%B%B, &
-	 Hub%SB_up%nOrth, det_up)
+         Hub%SB_up%nOrth, det_up)
 #else
     call DQMC_ComputeG(L, n, Hub%G_up%sgn, Hub%G_up%G, Hub%V_up, &
          Hub%SB_up, Hub%G_up%pvt, .true., det_up, HUb%G_up%sxx)
@@ -1778,7 +1921,7 @@ contains
 #if defined(DQMC_ASQRD)
        call cpp_gfun_computeg(Hub%G_dn%cpp_data, L, Hub%G_dn%sgn, &
             Hub%G_dn%G, Hub%V_dn, Hub%SB_dn%B%B, &
-	    Hub%SB_dn%nOrth, det_dn)
+            Hub%SB_dn%nOrth, det_dn)
 #else
        call DQMC_ComputeG(L, n, Hub%G_dn%sgn, Hub%G_dn%G, Hub%V_dn, &
             Hub%SB_dn, Hub%G_dn%pvt, .true., det_dn, Hub%G_dn%sxx)
@@ -1815,26 +1958,66 @@ contains
 
     ! Global move
     do i = 1, numTry
-       ! Flip its HS field for all the slices
        si = site(i)
-       sj = slice(i)
+       !sj = slice(i)
 
-       do j = 0, L-1
-          dx = delta*cos(dble(2*n*j)/L)
-          CHSF (si,sj) = CHSF(site(i),sj) + dx
+       if (SimType .eq. Hubbard_model) then
+          E_old = 0.0_wp
+          E_new = 0.0_wp
+          do j = 1, L
+             !CHSF (si,sj) = CHSF(site(i),sj) + dx
+             !CHSF (si,sj) = CHSF(si,sj) + dx
+
+             dx = delta2*cos(float(2*n*j)/float(L))
+             ! compute the old Gaussian exponent
+             PE_old = PE_old - 0.5_wp*CHSF(si,j)*CHSF(si,j)
+
+             ! update fields at all time slices at site index si
+             CHSF (si,j) = CHSF(si,j) + dx
+
+             ! compute the new Gaussian exponent
+             E_new = E_new - 0.5_wp*CHSF(si,j)*CHSF(si,j)
           
 #if defined(DQMC_ASQRD)
-          call cpp_gfun_invalid_cache(Hub%G_up%cpp_data, sj)
-          call cpp_gfun_invalid_cache(Hub%G_dn%cpp_data, sj)
+             call cpp_gfun_invalid_cache(Hub%G_up%cpp_data, sj)
+             call cpp_gfun_invalid_cache(Hub%G_dn%cpp_data, sj)
 #endif
+             !Hub%V_up(si,sj) = exp(Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
+             !Hub%V_dn(si,sj) = exp(-Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
+             Hub%V_up(si,j) = exp(Hub%lambda(Hub%S%map(si))*CHSF(si,j))
+             if (neg_u) then
+               Hub%V_dn(si,j) = Hub%V_up(si,j)
+             else
+               Hub%V_dn(si,j) = exp(-Hub%lambda(Hub%S%map(si))*CHSF(si,j))
+             end if
+          end do
 
-          Hub%V_up(si,sj) = exp(Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
-          Hub%V_dn(si,sj) = exp(-Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
-          sj = sj + 1
-          if (sj > Hub%L) then
-             sj = 1
-          end if
-       end do
+       else if (SimType .eq. Holstein_model) then
+          E_old = 0.0_wp
+          E_new = 0.0_wp
+
+          !subroutine PHONON_ACTION(L, norm, x, Sb)
+          call Phonon_Action(L, norm_phonon, CHSF(si,:), E_old)
+
+          do j = 1, L
+             dx = delta2*cos(float(2*n*j)/float(L))
+             ! update fields at all time slices at site index si
+             CHSF (si,j) = CHSF(si,j) + dx
+
+#if defined(DQMC_ASQRD)
+             call cpp_gfun_invalid_cache(Hub%G_up%cpp_data, sj)
+             call cpp_gfun_invalid_cache(Hub%G_dn%cpp_data, sj)
+#endif
+             Hub%V_up(si,j) = exp(Hub%lambda(Hub%S%map(si))*CHSF(si,j))
+             if (neg_u) then
+               Hub%V_dn(si,j) = Hub%V_up(si,j)
+             else
+               Hub%V_dn(si,j) = exp(-Hub%lambda(Hub%S%map(si))*CHSF(si,j))
+             end if
+          end do
+
+          call Phonon_Action(L, norm_phonon, CHSF(si,:), E_new)
+       end if
        
        ! Store the value of G first
        Hub%G_up%tmp = Hub%G_up%G
@@ -1848,7 +2031,7 @@ contains
 #if defined(DQMC_ASQRD)
        call cpp_gfun_computeg(Hub%G_up%cpp_data, L, n, &
             Hub%G_up%sgn, Hub%G_up%G, Hub%V_up, Hub%SB_up%B%B, &
-	    Hub%SB_up%L, Hub%SB_up%nOrth, new_up)
+            Hub%SB_up%L, Hub%SB_up%nOrth, new_up)
 #else
        call DQMC_ComputeG(L, n, Hub%G_up%sgn, Hub%G_up%G, Hub%V_up, &
             Hub%SB_up, Hub%G_up%pvt, .true., new_up, Hub%G_up%sxx)
@@ -1856,8 +2039,8 @@ contains
        if (compute_dn) then
 #if defined(DQMC_ASQRD)
           call cpp_gfun_computeg(Hub%G_up%cpp_data, L, n, &
-	       Hub%G_dn%sgn, Hub%G_dn%G, Hub%V_dn, Hub%SB_dn%B%B, &
-	       Hub%SB_dn%L, Hub%SB_dn%nOrth, new_dn)
+               Hub%G_dn%sgn, Hub%G_dn%G, Hub%V_dn, Hub%SB_dn%B%B, &
+               Hub%SB_dn%L, Hub%SB_dn%nOrth, new_dn)
 #else
           call DQMC_ComputeG(L, n, Hub%G_dn%sgn, Hub%G_dn%G, Hub%V_dn, &
                Hub%SB_dn, Hub%G_dn%pvt, .true., new_dn, Hub%G_up%sxx)
@@ -1868,7 +2051,8 @@ contains
        end if
 
        ! Compute the Det ratio
-       ! rat = abs((det_up*det_dn)/(new_up*new_dn)) 
+       ! NB: the determinant computed by GetG is log(abs(det(G)))
+       !     Here we need log(abs(Z))= -log(abs(det(G)))
        rat = det_up + det_dn - new_up - new_dn
 
        if (rat > ZERO) then
@@ -1876,6 +2060,7 @@ contains
        else
           ratexp = exp(rat)
        end if
+       ratexp = ratexp * exp(E_new - E_old)
 
        ! Compare the ratio to a random number
        ! add random number
@@ -1887,8 +2072,8 @@ contains
           accept = accept + 1
 
           ! update G's counter
-          Hub%G_up%wps = Hub%G_up%nWrap
-          Hub%G_dn%wps = Hub%G_dn%nWrap
+          !Hub%G_up%wps = Hub%G_up%nWrap
+          !Hub%G_dn%wps = Hub%G_dn%nWrap
        else                  
           ! reject
           ! recover the old values
@@ -1898,29 +2083,67 @@ contains
           end if
           Hub%G_up%sgn = copy_sgn_up
           Hub%G_dn%sgn = copy_sgn_dn
+          reject = reject + 1
 
-          sj = slice(i)
-          do j = 0, L-1
-             dx = delta*cos(dble(2*n*j)/L)
-             CHSF (si,sj) = CHSF (si,sj) - dx
+          !sj = slice(i)
+          do j = 1, L
+             dx = delta2*cos(float(2*n*j)/float(L))
+             CHSF (si,j) = CHSF (si,j) - dx
 #if defined(DQMC_ASQRD)
              call cpp_gfun_invalid_cache(Hub%G_up%cpp_data, sj)
              call cpp_gfun_invalid_cache(Hub%G_dn%cpp_data, sj)
 #endif
-             Hub%V_up(si,sj) = exp(Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
-             Hub%V_dn(si,sj) = exp(-Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
-
-             sj = sj + 1
-             if (sj > Hub%L) then
-                sj = 1
+             !Hub%V_up(si,sj) = exp(Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
+             !Hub%V_dn(si,sj) = exp(-Hub%lambda(Hub%S%map(sj))*CHSF(si,sj))
+             Hub%V_up(si,j) = exp(Hub%lambda(Hub%S%map(si))*CHSF(si,j))
+             if (neg_u) then
+               Hub%V_dn(si,j) = Hub%V_up(si,j)
+             else
+               Hub%V_dn(si,j) = exp(-Hub%lambda(Hub%S%map(si))*CHSF(si,j))
              end if
+
           end do
        end if
     end do
 
+    !Update determinant value
+    Hub%G_up%det = det_up
+    if (Hub%comp_dn) then
+       Hub%G_dn%det = det_dn
+    endif
+
+    ! update G's counter
+    Hub%G_up%wps = Hub%G_up%nWrap
+    Hub%G_dn%wps = Hub%G_dn%nWrap
+
     ! update accept and reject counts
-    Hub%naccept = Hub%naccept + accept
-    Hub%nreject = Hub%nreject + (numTry-accept)
+    !Hub%naccept = Hub%naccept + accept
+    !Hub%nreject = Hub%nreject + (numTry-accept)
+    Hub%nAcceptGlobal = Hub%nAcceptGlobal + accept
+    Hub%nRejectGlobal = Hub%nRejectGlobal + (numTry-accept)
+
+
+    contains
+      subroutine PHONON_ACTION(L, norm, x, Sb)
+        implicit none
+        integer, intent(in)     :: L
+        real(wp), intent(in)    :: norm(2)
+        real(wp), intent(in)    :: x(L)
+        real(wp), intent(inout) :: Sb
+
+        integer  :: iL
+        real(wp) :: Ptmp, Ktmp
+
+        Ptmp = 0.0_wp
+        Ktmp = 0.0_wp
+        do iL = 1, L-1
+          Ptmp = Ptmp - x(iL)*x(iL)
+          Ktmp = Ktmp - ( x(iL) - x(iL+1) )*( x(iL) - x(iL+1) )
+        end do
+        Ktmp = Ktmp - ( x(L) - x(1) )*( x(L) - X(1) )
+        Sb = Ktmp * norm(1) + Ptmp * norm(2)
+      return
+      end subroutine PHONON_ACTION
 
   end subroutine DQMC_Hub_Sweep2_Cont
 
@@ -1941,7 +2164,6 @@ contains
     ! Arguments
     ! =========
     !
-    !   05/08/2012: Add by C.C.
     !   Info == 1: Print runtime information
     !   Info == 0: Silent mode
     !
@@ -2031,9 +2253,9 @@ contains
 
         ! Modified in order to take into account U < 0 model on non-bipartite lattices.
         ! Before the modification, the code calls DQMC_Gfun_CopyUp() which assumes bipartite lattice.
-        ! This causes segmentation fault on, for example, triagular lattices which lacks particle-hole
+        ! This causes segmentation fault on, for example, the triagular lattice which lacks particle-hole
         ! symmetry. As a result, S%P is not defined. We fix it by separating U < 0 model from the rest
-        ! of the if-else statements, and calling calling DQMC_Gfun_clone().
+        ! of the if-else statements, and calling DQMC_Gfun_clone().
         if ( Hub%comp_dn ) then
            ! Get G_dn directly when :
            !     1) U > 0, mu_up .neq. 0, or mu_dn .neq. 0. 
@@ -2050,7 +2272,7 @@ contains
         else 
            ! Note that here we are left with the last condition: (.not.neg_u) and (.not.comp_dn).
            ! This implies that S%P is defined, i.e. S%checklist(STRUCT_PHASE) = 'T'.
-           ! So we can safely call DQMC_Gfun_CopyUp() which uses particle-hole symmetry.
+           ! So we can safely call DQMC_Gfun_CopyUp() which assumes particle-hole symmetry.
            ! Use particle-hole symmetry to get G_dn when :
            !     1) U > 0, at half-filling, t_up = t_dn, and "PHASE" S%P is defined.
            call DQMC_Gfun_CopyUp(G_dn_local, G_up_local, Hub%S%P)
@@ -2062,7 +2284,11 @@ contains
         endif
 
         call DQMC_Phy0_Meas(Hub%n, Hub%P0, G_up_local%GS, G_dn_local%GS, Hub%U, &
-           Hub%mu_up, Hub%mu_up, Hub%t_up, Hub%t_dn, sgn_up, sgn_dn, Hub%S)
+               Hub%mu_up, Hub%mu_dn, Hub%t_up, Hub%t_dn, sgn_up, sgn_dn, Hub%S)
+        if (SimType .eq. Holstein_model) then
+          call DQMC_Phy0_Meas_Holstein(Hub%n, Hub%L, Hub%P0, G_up_local%GS, G_dn_local%GS, &
+                 Hub%U, sgn_up, sgn_dn, Hub%S, Hub%CHSF, norm_phonon, Hub%dtau)
+        end if
 
         if (Hub%meas2) then
            ! Pair measurement
@@ -2092,7 +2318,6 @@ contains
      real(wp), pointer   :: sgn_dn    
      real(wp)            :: randn(1)
  
-     ! 05/10/2012, CC
      ! Warning: if slice = 0, DQMC_Hub_Meas() would return meaningless results.
      if (slice <= 0 .or. slice > Hub%L) then
        write(*,*) " In subroutine DQMC_Hub_Meas(Hub, slice), the argument 'slice' is out of bound."
@@ -2124,7 +2349,6 @@ contains
      elseif ( Hub%neg_u ) then
         sgn_dn = sgn_up
      else
-        ! 05/15/2012, C.C.:
         ! Note that here we have (.not.neg_u) and (.not.comp_dn).
         ! This implies that S%P is defined, i.e. S%checklist(STRUCT_PHASE) = 'T'.
         ! So we can safely call DQMC_Gfun_CopyUp() which uses particle-hole symmetry.
@@ -2139,7 +2363,12 @@ contains
      
      ! Basic measurement
      call DQMC_Phy0_Meas(Hub%n, Hub%P0, G_up_local%GS, G_dn_local%GS, Hub%U, &
-        Hub%mu_up, Hub%mu_dn, Hub%t_up, Hub%t_dn, sgn_up, sgn_dn, Hub%S)
+            Hub%mu_up, Hub%mu_dn, Hub%t_up, Hub%t_dn, sgn_up, sgn_dn, Hub%S)
+     if (SimType .eq. Holstein_model) then
+       call DQMC_Phy0_Meas_Holstein(Hub%n, Hub%L, Hub%P0, G_up_local%GS, G_dn_local%GS, &
+              Hub%U, sgn_up, sgn_dn, Hub%S, Hub%CHSF, norm_phonon, Hub%dtau)
+     end if
+
 
      if (Hub%meas2) then
         ! Pair measurement
@@ -2174,25 +2403,22 @@ contains
 
     ! ... Local variables ...
      integer :: i, j
-     real(wp) :: temp
+     real(wp) :: temp, temp2
 
     ! ... Executable ...
      if (.not.associated(Hub%V_up)) then
         allocate(Hub%V_up(Hub%n,Hub%L))
      endif
 
-     ! 05/10/2012: Added by C.C.
      ! This fix is required to make test program in /EXAMPLE/test work.
      ! Without the fix, the array size of Hub%V_up and Hub%V_dn would be 1 rather then n * L.
-     ! This causes segmentation fault when running the test program. I'm not clear why this 
-     ! happens ONLY to test, but not, say, verify and ggeom.
+     ! This causes segmentation fault when running the test program. 
      if (size(Hub%V_up) /= Hub%n*Hub%L) then
        allocate(Hub%V_up(Hub%n,Hub%L))
      end if
 
-     if (Hub%HSFtype == HSF_DISC) then
-
-        ! discrete case
+     ! discrete fields
+     if (Hub%HSFtype .eq. HSF_DISC) then
         do i = 1, Hub%L
            do j = 1, Hub%n
               Hub%V_up(j,i) = Hub%explook(Hub%HSF(j,i), Hub%S%map(j))
@@ -2207,11 +2433,9 @@ contains
            if (.not.associated(Hub%V_dn)) then
               allocate(Hub%V_dn(Hub%n,Hub%L))
            endif
-           ! 05/10/2012: Added by C.C.
            ! This fix is required to make test program in /EXAMPLE/test work.
            ! Without the fix, the array size of Hub%V_up and Hub%V_dn would be 1 rather then n * L.
-           ! This causes segmentation fault when running the test program. I'm not clear why this 
-           ! happens ONLY to test, but not, say, verify and gggeom.
+           ! This causes segmentation fault when running the test program. 
            if (size(Hub%V_dn) /= Hub%n*Hub%L) then
              allocate(Hub%V_dn(Hub%n,Hub%L))
            end if
@@ -2222,42 +2446,48 @@ contains
               end do
            end do
         end if
-     else
-        ! continuous case
-        do i = 1, Hub%L
-           do j = 1, Hub%n
-              temp = Hub%CHSF(j,i)
-              Hub%V_up(j,i) = exp(Hub%lambda(Hub%S%map(j))*temp)
-           end do
-        end do
-        
-        if (Hub%neg_u) then
-           if (.not.associated(Hub%V_dn)) then
-              Hub%V_dn => Hub%V_up
-           endif
-        else
-           if (.not.associated(Hub%V_dn)) then
-              allocate(Hub%V_dn(Hub%n,Hub%L))
-           endif
-           ! 05/10/2012: Added by C.C.
-           ! This fix is required to make test program in /EXAMPLE/test work.
-           ! Without the fix, the array size of Hub%V_up and Hub%V_dn would be 1 rather then n * L.
-           ! This causes segmentation fault when running the test program. I'm not clear why this 
-           ! happens ONLY to test, but not, say, verify and gggeom.
-           if (size(Hub%V_dn) /= Hub%n*Hub%L) then
-             allocate(Hub%V_dn(Hub%n,Hub%L))
+
+     ! continuous fields
+     else if (Hub%HSFtype .eq. HSF_CONT) then
+
+        if (SimType .eq. Hubbard_model) then
+           if (Hub%neg_u) then
+              do i = 1, Hub%L
+                 do j = 1, Hub%n
+                    temp  = Hub%lambda(Hub%S%map(j))*Hub%CHSF(j,i)
+                    temp2 = Hub%lambda(Hub%S%map(j))*Hub%lambda(Hub%S%map(j))
+                    Hub%V_up(j,i) = exp(temp) ! + temp2)
+                 end do
+              end do
+
+              if (.not.associated(Hub%V_dn)) Hub%V_dn => Hub%V_up
+           else
+              if (.not.associated(Hub%V_dn)) allocate(Hub%V_dn(Hub%n,Hub%L))
+              ! The following is required to make test program in /EXAMPLE/test work.
+              ! Without the fix, the array size of Hub%V_up and Hub%V_dn would be 1 rather then n * L.
+              ! This causes segmentation fault when running the test program. 
+              if (size(Hub%V_dn) /= Hub%n*Hub%L) allocate(Hub%V_dn(Hub%n,Hub%L))
+
+              do i = 1, Hub%L
+                 do j = 1, Hub%n
+                    temp = Hub%lambda(Hub%S%map(j))*Hub%CHSF(j,i)
+                    Hub%V_up(j,i) = exp( temp)
+                    Hub%V_dn(j,i) = exp(-temp)
+                 end do
+              end do
            end if
 
+        else if (SimType .eq. Holstein_model) then
            do i = 1, Hub%L
               do j = 1, Hub%n
-                 temp = Hub%CHSF(j,i)
-                 Hub%V_dn(j,i) = exp(-Hub%lambda(Hub%S%map(j))*temp)
+                 temp = Hub%lambda(Hub%S%map(j))*Hub%CHSF(j,i)
+                 Hub%V_up(j,i) = exp(temp)
               end do
            end do
+           if (.not.associated(Hub%V_dn)) Hub%V_dn => Hub%V_up
         end if
  
      end if
-
   end subroutine DQMC_Hub_Init_Vmat
 
   !-------------------------------------------------------------------!
