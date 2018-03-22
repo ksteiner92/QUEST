@@ -158,20 +158,20 @@ contains
     G%pvt => WS%I2
     G%V   => V
 
-    G%ilb = -L-1
+    G%ilb     = -L-1
     G%difflim = difflim
     G%nWrap   = nWrap
     G%fixwrap = fixw
-    G%maxWrap   = 3*nWrap
+    G%maxWrap = 3*nWrap
     G%wps     = 1
     G%errrate = errrate
 
-    G%redo   = 0
-    G%noRedo = 1
-    G%lastwr = 0
-    G%blkSz  = 0
+    G%redo    = 0
+    G%noRedo  = 1
+    G%lastwr  = 0
+    G%blkSz   = 0
     G%nModify = 0
-    G%det    = 0
+    G%det     = 0
     
     nb = ILAENV( 1, "DGETRI", " ", n, -1, -1, -1 )
     G%nblk = min(nb, n)
