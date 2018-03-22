@@ -33,50 +33,56 @@ module DQMC_Cfg
   integer, parameter :: TYPE_STRING  = 3 
 
   ! default parameters
-  integer, parameter :: N_Param = 40
+  integer, parameter :: N_Param = 42
+
+  ! model type paramerer
+  integer, parameter :: Hubbard_model  = 0
+  integer, parameter :: Holstein_model = 1
 
   ! name of parameters
   character(len=*), parameter :: PARAM_NAME(N_Param) =  &
-       &(/"HSF    ", &    ! methods of how HSF are generated                     
-       &  "HSFin  ", &    ! File name of HSF input, if HSF = HSF_FROM_FILE       
-       &  "HSFout ", &    ! File name of HSF output                              
-       &  "HSFtype", &    ! HSF type, 0 = discrete, 1 = continuous
-       &  "L      ", &    ! Number of time slides                                
-       &  "U      ", &    ! Parameter for potential energy                       
-       &  "accept ", &    ! accept counts        
-       &  "bcond  ", &    ! boundary conditions
-       &  "debug  ", &    ! flag for debug information output                    
-       &  "delta1 ", &    ! parameter for continous HSF
-       &  "delta2 ", &    ! parameter for continous HSF
-       &  "difflim", &    ! limit of tolerable difference                        
-       &  "dmu    ", &    ! perturbation of mu                                   
-       &  "dtau   ", &    ! discritize parameter                                 
-       &  "errrate", &    ! tolerable error                                      
-       &  "fixwrap", &    ! fix nwrap to input value
-       &  "gamma  ", &    ! correction of Metropolis ratio                       
-       &  "gfile  ", &    ! geometry definition                                  
-       &  "mu_dn  ", &    ! parameter for chemical potential                     
-       &  "mu_up  ", &    ! parameter for chemical potential                     
-       &  "n      ", &    ! number of particles                                  
-       &  "nbin   ", &    ! number of statisitical bins                          
-       &  "nhist  ", &    ! print history or not
-       &  "nitvl  ", &    ! number of interval, for continuous FT integration    
-       &  "north  ", &    ! frequence of orthogonalization                       
-       &  "npass  ", &    ! number of measurement sweeps                         
-       &  "ntry   ", &    ! number of global moves per sweeps                    
-       &  "nwarm  ", &    ! number of warmup sweeps                              
-       &  "nwrap  ", &    ! frequence of recomputing H                           
-       &  "nx     ", &    ! number of sites in x direction                       
-       &  "ny     ", &    ! number of sites in y direction                       
-       &  "nz     ", &    ! number of sites in y direction                       
-       &  "ofile  ", &    ! prefix of output files                               
-       &  "reject ", &    ! rejection counts                                     
-       &  "seed   ", &    ! random seed                                          
-       &  "ssxx   ", &    ! use iterative refinement during sweep
-       &  "t_up   ", &    ! parameter for kinetic energy                         
-       &  "t_dn   ", &    ! parameter for kinetic energy                         
-       &  "tausk  ", &    ! frequence of unequal time measurement                
-       &  "tdm    "/)     ! compute time dependent measurement
+       &(/"HSF     ", &    ! methods of how HSF are generated                     
+       &  "HSFin   ", &    ! File name of HSF input, if HSF = HSF_FROM_FILE       
+       &  "HSFout  ", &    ! File name of HSF output                              
+       &  "HSFtype ", &    ! HSF type, 0 = discrete, 1 = continuous
+       &  "L       ", &    ! Number of time slides                                
+       &  "U       ", &    ! Parameter for potential energy                       
+       &  "accept  ", &    ! accept counts        
+       &  "bcond   ", &    ! boundary conditions
+       &  "debug   ", &    ! flag for debug information output                    
+       &  "delta1  ", &    ! parameter for continous HSF
+       &  "delta2  ", &    ! parameter for continous HSF
+       &  "difflim ", &    ! limit of tolerable difference                        
+       &  "dmu     ", &    ! perturbation of mu                                   
+       &  "dtau    ", &    ! discritize parameter                                 
+       &  "errrate ", &    ! tolerable error                                      
+       &  "fixwrap ", &    ! fix nwrap to input value
+       &  "gamma   ", &    ! correction of Metropolis ratio                       
+       &  "gfile   ", &    ! geometry definition                                  
+       &  "mu_dn   ", &    ! parameter for chemical potential                     
+       &  "mu_up   ", &    ! parameter for chemical potential                     
+       &  "n       ", &    ! number of particles                                  
+       &  "nbin    ", &    ! number of statisitical bins                          
+       &  "nhist   ", &    ! print history or not
+       &  "nitvl   ", &    ! number of interval, for continuous FT integration    
+       &  "north   ", &    ! frequence of orthogonalization                       
+       &  "npass   ", &    ! number of measurement sweeps                         
+       &  "ntry    ", &    ! number of global moves per sweeps                    
+       &  "nwarm   ", &    ! number of warmup sweeps                              
+       &  "nwrap   ", &    ! frequence of recomputing H                           
+       &  "nx      ", &    ! number of sites in x direction                       
+       &  "ny      ", &    ! number of sites in y direction                       
+       &  "nz      ", &    ! number of sites in y direction                       
+       &  "ofile   ", &    ! prefix of output files                               
+       &  "reject  ", &    ! rejection counts                                     
+       &  "seed    ", &    ! random seed                                          
+       &  "ssxx    ", &    ! use iterative refinement during sweep
+       &  "t_up    ", &    ! parameter for kinetic energy                         
+       &  "t_dn    ", &    ! parameter for kinetic energy                         
+       &  "tausk   ", &    ! frequence of unequal time measurement                
+       &  "tdm     ", &    ! compute time dependent measurement
+       &  "SimType ", &    ! flag for model type
+       &  "omega   " /)    ! phonon dispersion
 
   ! default values
   character(len=*), parameter :: PARAM_DVAL(N_Param) =  &
@@ -119,7 +125,9 @@ module DQMC_Cfg
        &  "1.0     ", &    ! t_up      
        &  "1.0     ", &    ! t_dn      
        &  "10      ", &    ! tausk  
-       &  "0       "/)     ! tdm
+       &  "0       ", &    ! tdm
+       &  "0       ", &    ! SimType  
+       &  "0.0     " /)    ! omega
   
   ! parameter type
   integer, parameter :: PARAM_TYPE(N_Param) = &
@@ -162,7 +170,9 @@ module DQMC_Cfg
        &  TYPE_REAL,    &    ! t_up      
        &  TYPE_REAL,    &    ! t_dn      
        &  TYPE_INTEGER, &    ! tausk  
-       &  TYPE_INTEGER/)     ! tdm
+       &  TYPE_INTEGER, &    ! tdm
+       &  TYPE_INTEGER, &    ! SimType 
+       &  TYPE_REAL     /)   ! omega
 
   ! is array parameter
   logical, parameter :: PARAM_ARRAY(N_Param) = &
@@ -205,7 +215,10 @@ module DQMC_Cfg
        &  .true. ,&           ! t_up
        &  .true. ,&           ! t_dn
        &  .false.,&           ! tausk  
-       &  .false./)           ! tdm
+       &  .false.,&           ! tdm
+       &  .false.,&           ! SimType 
+       &  .false.  /)         ! omega
+
 
   !
   ! Data Type
