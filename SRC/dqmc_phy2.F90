@@ -704,7 +704,7 @@ contains
     if (P2%compute) then
        avg = P2%avg
        err = P2%err
-       call DQMC_Print_RealArray(0, P2%nWave, "Pair-field correlation function - accumulated:", &
+       call DQMC_Print_RealArray(0, P2%nWave, "Uniform (q=0) pairing structure factor:", &
             wlabel, P2%M3(:,avg:avg), P2%M3(:,err:err), OPT)
     end if
     
