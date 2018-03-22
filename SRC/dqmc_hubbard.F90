@@ -1890,8 +1890,7 @@ contains
     real(wp)               :: det_up, det_dn, new_up, new_dn
     real(wp)               :: copy_sgn_up, copy_sgn_dn, delta2, dx
     real(wp)               :: G_dn_tmp(Hub%n,Hub%n)
-    real(wp)               :: E_old, E_new, PE_old, PE_new, KE_old, KE_new
-
+    real(wp)               :: E_old, E_new
     logical                :: compute_dn, neg_u
 
     ! ... Executable ...
@@ -1970,7 +1969,7 @@ contains
 
              dx = delta2*cos(float(2*n*j)/float(L))
              ! compute the old Gaussian exponent
-             PE_old = PE_old - 0.5_wp*CHSF(si,j)*CHSF(si,j)
+             E_old = E_old - 0.5_wp*CHSF(si,j)*CHSF(si,j)
 
              ! update fields at all time slices at site index si
              CHSF (si,j) = CHSF(si,j) + dx
@@ -2140,6 +2139,7 @@ contains
           Ptmp = Ptmp - x(iL)*x(iL)
           Ktmp = Ktmp - ( x(iL) - x(iL+1) )*( x(iL) - x(iL+1) )
         end do
+        Ptmp = Ptmp - x(L)*x(L)
         Ktmp = Ktmp - ( x(L) - x(1) )*( x(L) - X(1) )
         Sb = Ktmp * norm(1) + Ptmp * norm(2)
       return
