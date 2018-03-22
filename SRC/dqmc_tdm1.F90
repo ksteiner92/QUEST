@@ -214,14 +214,14 @@ contains
     do iw = 0, L-1
        do it = 0, L-1
           x = 2*it*iw*pi/L
-          T1%ftwbos(iw,it) = T1%dtau * cmplx(cos(x),sin(x))
+          T1%ftwbos(iw,it) = T1%dtau * cmplx(cos(x),sin(x), kind=wp)
        enddo
     enddo
 
     do iw = 0, L-1
        do it = 0, L-1
           x = 2*it*(iw+0.5_wp)*pi/L
-          T1%ftwfer(iw,it) = T1%dtau * cmplx(cos(x),sin(x))
+          T1%ftwfer(iw,it) = T1%dtau * cmplx(cos(x),sin(x), kind=wp)
        enddo
     enddo
 
@@ -1201,12 +1201,12 @@ contains
              do i = 1, T1%nbin
 
                 binval => T1%properties(ip)%valuesk(:,it,i)
-                error  = error  +  cmplx((real(average-binval))**2,(aimag(average-binval))**2)
+                error  = error  +  cmplx((real(average-binval))**2,(aimag(average-binval))**2, kind=wp)
 
              enddo ! Loop over bins
 
              error  = (T1%nbin-1)*error/T1%nbin
-             error = cmplx(sqrt(real(error)),sqrt(aimag(error)))
+             error = cmplx(sqrt(real(error)),sqrt(aimag(error)), kind=wp)
   
           enddo
 
@@ -1225,12 +1225,12 @@ contains
              average  => T1%properties(ip)%valuesk(:,it,T1%avg)
              error    => T1%properties(ip)%valuesk(:,it,T1%err)
              binval   => T1%properties(ip)%valuesk(:,it,1)
-             temp     =  cmplx((real(average-binval))**2,(aimag(average-binval))**2)
+             temp     =  cmplx((real(average-binval))**2,(aimag(average-binval))**2, kind=wp)
 #            ifdef _QMC_MPI
              call mpi_allreduce(temp, error, n, mpi_double, mpi_sum, mpi_comm_world, i)
 #            endif
              error  = (nproc-1)*error/nproc
-             error = cmplx(sqrt(real(error)),sqrt(aimag(error)))
+             error = cmplx(sqrt(real(error)),sqrt(aimag(error)), kind=wp)
           enddo
 
           deallocate(temp)
@@ -1526,7 +1526,7 @@ contains
              ! Compute self-energy for bin
              binSE = tdmg0kw - tdmgkw
              if (qmc_sim%size .eq. 1) &
-                errSE = errSE + cmplx((real(binSE-avgSE))**2,(aimag(binSE-avgSE))**2)
+                errSE = errSE + cmplx((real(binSE-avgSE))**2,(aimag(binSE-avgSE))**2, kind=wp)
   
           enddo 
 
@@ -1534,14 +1534,14 @@ contains
 
              m = qmc_sim%size
              ! Reuse tdmgkw for temporary storage
-             tdmgkw =  cmplx((real(binSE-avgSE))**2,(aimag(binSE-avgSE))**2)
+             tdmgkw =  cmplx((real(binSE-avgSE))**2,(aimag(binSE-avgSE))**2, kind=wp)
 #            ifdef _QMC_MPI
              call mpi_allreduce(tdmgkw, errSE, n, mpi_double_complex, mpi_sum, mpi_comm_world, i)
 #            endif
 
           endif
 
-          errSE = cmplx(sqrt(real(errSE)),sqrt(aimag(errSE))) * sqrt(dble(m-1)/m)
+          errSE = cmplx(sqrt(real(errSE)),sqrt(aimag(errSE)), kind=wp) * sqrt(dble(m-1)/m)
 
           ! Take care of printing
           if (qmc_sim%rank .eq. 0) then
