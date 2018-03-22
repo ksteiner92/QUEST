@@ -63,7 +63,7 @@ contains
 
 #endif
 
-  subroutine DQMC_B_Init(n, B, WS, Adj, ckb, t, mu, dtau)
+  subroutine DQMC_B_Init(n, B, WS, Adj, ckb, t, mu, dtau, Uhubb)
     !
     ! Purpose
     ! =======
@@ -95,7 +95,8 @@ contains
     type(CCS), intent(in)     :: adj          ! adjacent info
     type(CCS), intent(out)    :: ckb
     real(wp), intent(in)      :: t(:)         ! model parameter
-    real(wp), intent(in)      :: mu(n), dtau  
+    real(wp), intent(in)      :: mu(n), dtau
+    real(wp), intent(in), optional      :: Uhubb(n)
 
     ! ... local scalars    ...
     integer  :: i, j                          ! iterator
@@ -132,7 +133,15 @@ contains
        do j = start(i), start(i+1)-1
           H(r(j),i) = t(A(j))*dtau
        end do
-       H(i,i) = mu(i)*dtau
+       ! In the case of negative U Hubbard model, the chemical potential is shifted by |U|
+       ! when the continuous field Hubbard-Stratonivich transformation is implemented. 
+       ! Since the shift terms are diagonal in Fock space basis, naturally it is combined
+       ! with the chemical potential term.
+       if (present(Uhubb)) then
+         H(i,i) = (mu(i)-Uhubb(i))*dtau
+       else
+         H(i,i) = mu(i)*dtau
+       end if
     end do
 
     B%K = H
