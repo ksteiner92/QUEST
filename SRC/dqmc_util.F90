@@ -870,6 +870,8 @@ contains
     ! ... Executable ...
 
     var(1:n) = ZERO
+
+    ! generate uniformly distributed random numbers in the interval (-1,1)
     call dlarnv(2, seed, n, var)
 
   end subroutine ran1
