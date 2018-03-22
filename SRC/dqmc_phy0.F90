@@ -73,50 +73,63 @@ module DQMC_Phy0
   !
 
   ! Array    
-  integer, parameter  :: narrays = 9
-
-  ! Index of the array varaiables
-  integer, parameter  :: IMEAS = 0
-  integer, parameter  :: IGFUN = 1
-  integer, parameter  :: IGFUP = 2
-  integer, parameter  :: IGFDN = 3
-  integer, parameter  :: ISPXX = 4
-  integer, parameter  :: ISPZZ = 5
-  integer, parameter  :: IAVSP = 6
-  integer, parameter  :: IDEN0 = 7
-  integer, parameter  :: IDEN1 = 8
-  integer, parameter  :: IPAIR = 9
+  integer, parameter :: narrays       = 9
+                                     
+  ! Index of the array varaiables    
+  integer, parameter :: IMEAS         = 0
+  integer, parameter :: IGFUN         = 1
+  integer, parameter :: IGFUP         = 2
+  integer, parameter :: IGFDN         = 3
+  integer, parameter :: ISPXX         = 4
+  integer, parameter :: ISPZZ         = 5
+  integer, parameter :: IAVSP         = 6
+  integer, parameter :: IDEN0         = 7
+  integer, parameter :: IDEN1         = 8
+  integer, parameter :: IPAIR         = 9
 
   ! Parameter for the index of scalar variables (IMEAS)
-  integer, parameter :: P0_NUP       = 1
-  integer, parameter :: P0_NDN       = 2
-  integer, parameter :: P0_DENSITY   = 3
-  integer, parameter :: P0_NUD       = 4
-  integer, parameter :: P0_KE        = 5
-  integer, parameter :: P0_PE        = 6 
-  integer, parameter :: P0_ENERGY    = 7
 
-  integer, parameter :: P0_CHIT      = 8
-  integer, parameter :: P0_CV        = 9
+  integer, parameter :: P0_PHONON_KE  = 1    ! phonon kinetic energy
+  integer, parameter :: P0_PHONON_PE  = 2    ! phonon potential energy
+  integer, parameter :: P0_ENER_ELPH  = 3    ! electron-phonon coupling energy
+  integer, parameter :: P0_XAVG       = 4    ! phonon average displacement
 
-  integer, parameter :: P0_m_squared = 10
-  integer, parameter :: P0_SFERRO    = 11
-  integer, parameter :: P0_SFER2     = 12
-  integer, parameter :: P0_SAF       = 13
-  integer, parameter :: P0_SAFSQ     = 14
-  integer, parameter :: P0_SAF2      = 15
-  integer, parameter :: P0_SAF2SQ    = 16
+  integer, parameter :: P0_NUP        = 5
+  integer, parameter :: P0_NDN        = 6
+  integer, parameter :: P0_DENSITY    = 7
+  integer, parameter :: P0_NUD        = 8
+  integer, parameter :: P0_KE         = 9
+  integer, parameter :: P0_PE         = 10
+  integer, parameter :: P0_ENERGY     = 11
+  integer, parameter :: P0_CHIT       = 12
+  integer, parameter :: P0_CV         = 13
+                                     
+  integer, parameter :: P0_m_squared  = 14
+  integer, parameter :: P0_SFERRO     = 15
+  integer, parameter :: P0_SFER2      = 16
+  integer, parameter :: P0_SAF        = 17
+  integer, parameter :: P0_SAFSQ      = 18
+  integer, parameter :: P0_SAF2       = 19
+  integer, parameter :: P0_SAF2SQ     = 20
 
-  integer, parameter :: P0_N_NO_SAF  = 12
-  integer, parameter :: P0_N         = 16
+  integer, parameter :: P0_N_NO_SAF   = 16
+  integer, parameter :: P0_N          = 20
+  integer, parameter :: P0_N_PHONON   = 4
 
-  integer, parameter :: P0_SGN       = 1
-  integer, parameter :: P0_SGNUP     = 2
-  integer, parameter :: P0_SGNDN     = 3
+  integer, parameter :: P0_SGN        = 1
+  integer, parameter :: P0_SGNUP      = 2
+  integer, parameter :: P0_SGNDN      = 3
+
+  integer, parameter :: CNT_HUB       = 1   ! cnt() array index for the Hubbard model
+  integer, parameter :: CNT_HOL       = 2   ! cnt() array index for the Holstein model
 
 
   ! Name of scalar variables
   character(len=*), parameter :: P0_STR(P0_N) = (/&
+       "                   phonon kinetic energy : ", &
+       "                 phonon potential energy : ", &
+       "         electron-phonon coupling energy : ", &
+       "             average phonon displacement : ", &
        "                         spin up density : ", &
        "                       spin down density : ", &
        "                           total density : ", &
@@ -132,7 +145,7 @@ module DQMC_Phy0
        "                  XX AF structure factor : ", &
        "               Root Mean Square of XX AF : ", &
        "                  ZZ AF structure factor : ", &
-       "               Root Mean Square of ZZ AF : "/)
+       "               Root Mean Square of ZZ AF : " /)
 
   character(len=*), parameter :: P0_SIGN_STR(3) = (/&
        "                                avg sign : ", &
@@ -141,19 +154,15 @@ module DQMC_Phy0
 
 
   type Phy0
-     ! Measurement part
      integer  :: nClass                     ! Number of distinct 
                                             ! autocorrelction terms
      integer  :: nBin                       ! Number of terms
      integer  :: nMeas                      ! Number of measurements
-     integer  :: avg, err                   ! Index for average and error
-                                            ! bins.
-     integer  :: cnt                        ! Number of measurement for 
-                                            ! current bin
+     integer  :: avg, err                   ! Index for average and error bins.
+     integer  :: cnt(2)                     ! Number of measurement for current bin
      integer  :: idx                        ! current bin index
-
-     integer   :: n                         ! number of sites
-     real(wp)  :: beta                      ! Inverse Temperature
+     integer  :: n                          ! number of sites
+     real(wp) :: beta                       ! Inverse Temperature
     
      ! Scalar array
      real(wp), pointer :: meas(:, :)        ! Scalar varaibles
@@ -233,7 +242,7 @@ contains
     if (P0%compSAF) then
        P0%nMeas = P0_N
     else
-       p0%nMeas = P0_N_NO_SAF
+       P0%nMeas = P0_N_NO_SAF
     end if
 
     ! Allocate storages for sign and properties
@@ -289,7 +298,6 @@ contains
 
     P0%init = .true.
 
-    ! 10/26/2012
     ! The following pointers will be allocated in DQMC_GetFT():
     !
     !     AllPropFT(:,:)           ! Matrix of FT 
@@ -369,10 +377,10 @@ contains
     idx = P0%idx
 
     ! compute the normalization factor = 1/cnt
-    if (P0%cnt == 0) then
-       call DQMC_Error("Phy0 normalize: cnt = 0", 0)
+    if (P0%cnt(CNT_HUB) == 0) then
+       call DQMC_Error("Phy0 Hubbard measurement normalization factor: cnt = 0", 0)
     end if
-    factor = ONE / P0%cnt
+    factor = ONE / P0%cnt(CNT_HUB)
 
     ! average
     P0%meas(:, idx) = P0%meas(:, idx) * factor
@@ -405,7 +413,7 @@ contains
 
   !--------------------------------------------------------------------!
   
-  subroutine DQMC_Phy0_Print(P0, S, OPT)
+  subroutine DQMC_Phy0_Print(P0, S, SimType, OPT)
     use dqmc_mpi
     !
     ! Purpose
@@ -422,12 +430,14 @@ contains
     ! Arguments
     ! =========
     !
-    type(Phy0), intent(in)    :: P0   ! Phy0
-    type(Struct), intent(in)  :: S    ! Underline lattice structure
-    integer, intent(in)       :: OPT  ! Output file handle
+    type(Phy0), intent(in)    :: P0       ! Phy0
+    type(Struct), intent(in)  :: S        ! Underline lattice structure
+    integer, intent(in)       :: OPT      ! Output file handle
+    integer, intent(in)       :: SimType  ! flag for Holstein model
 
     ! ... Local scalar ...
     integer :: nClass, avg, err
+    integer :: i1, i2, i3
 
     ! ... Executable ...
 
@@ -437,12 +447,21 @@ contains
     avg    = P0%avg
     err    = P0%err
 
+
     ! Scalar terms
     call DQMC_Print_RealArray(0, 3, "Sign of equal time measurements:", &
          P0_SIGN_STR, P0%sign(:,avg:avg), P0%sign(:,err:err), OPT)
-    
-    call DQMC_Print_RealArray(0, P0%nmeas, "Equal time measurements:", &
-         P0_STR, P0%meas(:,avg:avg), P0%meas(:,err:err), OPT)
+   
+    if (SimType .eq. Holstein_model) then
+      call DQMC_Print_RealArray(0, P0_N_PHONON, "Phonon properties :",   &
+              P0_STR( 1:P0_N_PHONON),                                    &
+              P0%meas(1:P0_N_PHONON,avg:avg),                            &
+              P0%meas(1:P0_N_PHONON,err:err), OPT)
+    end if
+    call DQMC_Print_RealArray(0, P0%nMeas-P0_N_PHONON, "Electronic properties:",   &
+            P0_STR( P0_N_PHONON+1:P0%nMeas),                                       &
+            P0%meas(P0_N_PHONON+1:P0%nMeas,avg:avg),                               &
+            P0%meas(P0_N_PHONON+1:P0%nMeas,err:err), OPT)
 
     ! Function terms
     call DQMC_Print_RealArray(0, nClass, "Mean Equal time Green's function:", &
@@ -471,7 +490,7 @@ contains
     call DQMC_Print_RealArray(0, nClass, "Average Spin correlation function:", &
          S%clabel, P0%AveSpin(:, avg:avg), P0%AveSpin(:, err:err), OPT)
     
-    call DQMC_Print_RealArray(0, nClass, "Pairing correlation function:", &
+    call DQMC_Print_RealArray(0, nClass, "S-wave pairing correlation function:", &
          S%clabel, P0%Pair(:, avg:avg), P0%Pair(:, err:err), OPT)
     
   end subroutine DQMC_Phy0_Print
@@ -661,7 +680,8 @@ contains
 
   !--------------------------------------------------------------------!
 
-  subroutine DQMC_Phy0_Meas(n, P0, G_up, G_dn, U, mu_up, mu_dn, t_up, t_dn, sgnup, sgndn, S)
+  subroutine DQMC_Phy0_Meas_Holstein(n, L, P0, G_up, G_dn, U, sgnup, sgndn, S, CHSF, norm, dtau)
+    implicit none
     !
     ! Purpose
     ! =======
@@ -671,23 +691,131 @@ contains
     ! Arguments
     ! =========
     !
-    integer, intent(in)          :: n                   ! Number of sites
-    type(Phy0), intent(inout)    :: P0                  ! Phy0
-    real(wp), intent(in)         :: G_up(n,n)           ! Green's function
-    real(wp), intent(in)         :: G_dn(n,n)           ! for spin up and down
-    real(wp), intent(in)         :: sgnup, sgndn        ! Sgn for det(G_up) det(G_dn)
-    real(wp), intent(in)         :: mu_up(n), mu_dn(n)  ! Chemical and Kinetic para
-    real(wp), intent(in)         :: t_up(:), t_dn(:)    ! Chemical and Kinetic para
-    real(wp), intent(in)         :: U(:)                ! Chemical and Kinetic para
-    type(Struct), intent(in)     :: S                   ! Underline structure
-    target :: S
+    integer, intent(in)            :: n                   ! Number of sites
+    integer, intent(in)            :: L                   ! number of time slices
+    type(Phy0), intent(inout)      :: P0                  ! Phy0
+    real(wp), intent(in)           :: G_up(n,n)           ! Green's function, spin up
+    real(wp), intent(in)           :: G_dn(n,n)           ! Green's function, spin down
+    real(wp), intent(in)           :: U(:)                ! Holstein el-ph couplings
+    real(wp), intent(in)           :: sgnup, sgndn        ! Sgn for det(G_up) det(G_dn)
+    type(Struct), intent(in)       :: S                   ! Underline structure
+    target                         :: S
+
+    ! Phonon observable measurements
+    real(wp), intent(in)           :: CHSF(:,:)           ! Phonon fields
+    real(wp), intent(in)           :: norm(2)             ! normalization factors for phonon terms
+    real(wp), intent(in)           :: dtau                ! imaginary time step size
+
+    ! ... local scalar ...
+    integer  :: i, j, tmp, idx
+    real(wp) :: sgn                        
+    real(wp) :: var0, var1
+    real(wp) :: Ekin, Epot, Eelph
+
+    ! ... executable ...
+    idx = P0%idx
+    tmp = P0%avg
+
+    ! This is a reminder
+    ! P0_PHONON_KE  = 8    ! phonon kinetic energy
+    ! P0_PHONON_PE  = 9    ! phonon potential energy
+    ! P0_ENER_ELPH  = 10   ! electron-phonon coupling energy
+
+    ! initialization
+    ! Here we use avg bin as a temp variable 
+    P0%meas(P0_PHONON_KE,tmp)   = ZERO
+    P0%meas(P0_PHONON_PE,tmp)   = ZERO
+    P0%meas(P0_ENER_ELPH,tmp)   = ZERO
+
+    ! Measuring phonon observables
+    Ekin  = 0.0_wp
+    Epot  = 0.0_wp
+    Eelph = 0.0_wp
+    do j = 1, L
+      do i = 1, n
+        ! Phonon potential energy
+        Epot = Epot + CHSF(i,j)*CHSF(i,j)
+
+        ! Phonon kinetic energy
+        if (j .lt. L) then
+          var1 = (CHSF(i, j) - CHSF(i, j+1))*(CHSF(i, j) - CHSF(i, j+1))
+        else
+          var1 = (CHSF(i, j) - CHSF(i,   1))*(CHSF(i, j) - CHSF(i,   1))
+        end if
+        Ekin = Ekin + var1
+
+        !if (j .eq. L) then
+        !  var1 = (CHSF(i, j) - CHSF(i,   1))*(CHSF(i, j) - CHSF(i,   1))
+        !  var2 = (CHSF(i, j) - CHSF(i, j-1))*(CHSF(i, j) - CHSF(i, j-1))
+        !else if (j .eq. 1) then
+        !  var1 = (CHSF(i, j) - CHSF(i, j+1))*(CHSF(i, j) - CHSF(i, j+1))
+        !  var2 = (CHSF(i, j) - CHSF(i,   L))*(CHSF(i, j) - CHSF(i,   L))
+        !else
+        !  var1 = (CHSF(i, j) - CHSF(i, j+1))*(CHSF(i, j) - CHSF(i, j+1))
+        !  var2 = (CHSF(i, j) - CHSF(i, j-1))*(CHSF(i, j) - CHSF(i, j-1))
+        !end if
+        !Ekin = Ekin + 0.5_wp*(var1 + var2)
+
+        ! Electron-Phonon interaction energy
+        Eelph = Eelph + CHSF(i,j)*U(S%map(i))*( 2.0_wp - G_up(i,i) - G_dn(i,i) )
+      end do
+    end do
+    ! Unlike the legacy code, here we average over time slices. Later on P0%meas will
+    ! be normalized by the number of sites.
+    P0%meas(P0_PHONON_KE, tmp) = Ekin*norm(1)/dtau
+    P0%meas(P0_PHONON_PE, tmp) = Epot*norm(2)/dtau
+    P0%meas(P0_ENER_ELPH, tmp) = Eelph
+    P0%meas(P0_XAVG, tmp)      = sum(CHSF)
+
+    ! Average
+    var0 = 1.0_wp / (float(n*L))
+    P0%meas(P0_PHONON_KE,tmp) = P0%meas(P0_PHONON_KE,tmp)*var0
+    P0%meas(P0_PHONON_PE,tmp) = P0%meas(P0_PHONON_PE,tmp)*var0
+    P0%meas(P0_ENER_ELPH,tmp) = P0%meas(P0_ENER_ELPH,tmp)*var0
+    P0%meas(P0_XAVG, tmp)     = P0%meas(P0_XAVG, tmp)*var0
+
+    ! Accumulate result to P0(:, idx)
+    ! sign measurement is done in DQMC_Phy0_Meas. Here we just grab their local values.
+    sgn = sgnup * sgndn
+    P0%meas(P0_PHONON_KE, idx) =  P0%meas(P0_PHONON_KE, idx) + P0%meas(P0_PHONON_KE, tmp)*sgn
+    P0%meas(P0_PHONON_PE, idx) =  P0%meas(P0_PHONON_PE, idx) + P0%meas(P0_PHONON_PE, tmp)*sgn
+    P0%meas(P0_ENER_ELPH, idx) =  P0%meas(P0_ENER_ELPH, idx) + P0%meas(P0_ENER_ELPH, tmp)*sgn
+    P0%meas(P0_XAVG, idx)      =  P0%meas(P0_XAVG, idx)      + P0%meas(P0_XAVG, tmp)*sgn
+
+    P0%cnt(CNT_HOL) = P0%cnt(CNT_HOL) + 1
+
+  end subroutine DQMC_Phy0_Meas_Holstein
+
+  !--------------------------------------------------------------------!
+
+  subroutine DQMC_Phy0_Meas(n, P0, G_up, G_dn, U, mu_up, mu_dn, t_up, t_dn, sgnup, sgndn, S)
+    implicit none
+    !
+    ! Purpose
+    ! =======
+    !    This subroutine performs some physics measurement on
+    !    Hubbard model.
+    !
+    ! Arguments
+    ! =========
+    !
+    integer, intent(in)            :: n                   ! Number of sites
+    type(Phy0), intent(inout)      :: P0                  ! Phy0
+    real(wp), intent(in)           :: G_up(n,n)           ! Green's function, spin up
+    real(wp), intent(in)           :: G_dn(n,n)           ! Green's function, spin down
+    real(wp), intent(in)           :: sgnup, sgndn        ! Sgn for det(G_up) det(G_dn)
+    real(wp), intent(in)           :: mu_up(n), mu_dn(n)  ! Chemical potential        
+    real(wp), intent(in)           :: t_up(:), t_dn(:)    ! Hoppings 
+    real(wp), intent(in)           :: U(:)                ! Hubbard U or Holstein el-ph couplings
+    type(Struct), intent(in)       :: S                   ! Underline structure
+    target                         :: S
 
     ! ... local scalar ...
 
     integer  :: i, j, k, ph                      ! Loop iterator
     integer  :: tmp, idx, m                      ! Helper variables
     real(wp) :: sgn                        
-    real(wp) :: var0, var1, var2, var3          
+    real(wp) :: var0, var1, var2, var3    
     integer, pointer  :: start(:) 
     integer, pointer  :: r(:) 
     integer, pointer  :: A(:) 
@@ -731,7 +859,7 @@ contains
        !======================================================!
        var0 = P0%up(i) * P0%dn(i)
        P0%meas(P0_NUD, tmp) = P0%meas(P0_NUD, tmp) + var0 
-       P0%meas(P0_PE, tmp)  = P0%meas(P0_PE, tmp)  + var0 * U(S%Map(i))
+       P0%meas(P0_PE, tmp)  = P0%meas(P0_PE, tmp)  + var0*U(S%Map(i))
     end do
 
     P0%meas(P0_NUP, tmp) = sum(P0%up)
@@ -766,19 +894,18 @@ contains
     !=================================================================! 
     ! Magnetisation squared = 1/4 (rho - 2 double_occupancy)    
     !=================================================================! 
-    P0%meas(P0_m_squared, tmp) = 2.5d-1 * ( P0%meas(P0_DENSITY, tmp) - 2.d0 * P0%meas(P0_NUD, tmp) )
+    P0%meas(P0_m_squared, tmp) = 0.25_wp*( P0%meas(P0_DENSITY, tmp) - 2.0_wp*P0%meas(P0_NUD, tmp) )
     
     !=================================================================!
     ! Total energy, in particle-hole symmetric form, including chemical potential terms  
     !=================================================================!
     P0%meas(P0_ENERGY, tmp) = P0%meas(P0_KE, tmp) + P0%meas(P0_PE, tmp)
     do i = 1, n
-      P0%meas(P0_ENERGY, tmp) = P0%meas(P0_ENERGY, tmp)     &
-           - 5.d-1 * U(S%Map(i)) * ( P0%up(i) + P0%dn(i) )  &
-           + 2.5d-1 * U(S%Map(i))                           &
+      P0%meas(P0_ENERGY, tmp) = P0%meas(P0_ENERGY, tmp)      &
+           - 0.5_wp * U(S%Map(i)) * ( P0%up(i) + P0%dn(i) )  &
+           + 0.25_wp * U(S%Map(i))                           &
            - (mu_up(S%Map(i)) * P0%up(i) + mu_dn(S%Map(i)) * P0%dn(i))
     enddo
-
 
     !=========================================!
     ! Chi_thermal 
@@ -791,8 +918,8 @@ contains
           h_up(r(j), i) =  -t_up(A(j))
           h_dn(r(j), i) =  -t_dn(A(j))
        end do
-       h_up(i,i) =  h_up(i,i) - mu_up(S%Map(i)) - 0.5d0 * U(S%Map(i))
-       h_dn(i,i) =  h_dn(i,i) - mu_dn(S%Map(i)) - 0.5d0 * U(S%Map(i))
+       h_up(i,i) =  h_up(i,i) - mu_up(S%Map(i)) - 0.5_wp*U(S%Map(i))
+       h_dn(i,i) =  h_dn(i,i) - mu_dn(S%Map(i)) - 0.5_wp*U(S%Map(i))
     end do
 
     ! Gfun * t
@@ -801,14 +928,15 @@ contains
     call blas_dgemm('N', 'N', n, n, n, ONE, G_dn, n, h_dn, n, ZERO, A_dn, n)
 
     ! Total number of particles
-    Nbar = sum(P0%up) + sum(P0%dn)
+    !Nbar = sum(P0%up) + sum(P0%dn)
+    Nbar = P0%meas(P0_NUP, tmp) + P0%meas(P0_NDN, tmp)
 
-    Tbar = 0.d0
+    Tbar = 0.0_wp
     do i = 1, n
        Tbar = Tbar + h_up(i, i) + h_dn(i, i)
     enddo
 
-    Cbar = 0.d0
+    Cbar = 0.0_wp
     do i = 1, n
        Cbar = Cbar + A_up(i, i) + A_dn(i, i)
     enddo
@@ -972,7 +1100,7 @@ contains
        P0%SpinZZ(i, tmp) = P0%SpinZZ(i, tmp) / S%F(i)
        P0%Den0  (i, tmp) = P0%Den0  (i, tmp) / S%F(i) * HALF
        P0%Den1  (i, tmp) = P0%Den1  (i, tmp) / S%F(i)
-       P0%Pair(i, tmp)   = P0%Pair(i, tmp) / S%F(i) * HALF
+       P0%Pair  (i, tmp) = P0%Pair  (i, tmp) / S%F(i) * HALF
     end do
     
 
@@ -984,6 +1112,7 @@ contains
     ! Accumulate result to P0(:, idx)
     sgn = sgnup * sgndn
     P0%meas(:, idx) =  P0%meas(:, idx) + P0%meas(:, tmp) * sgn
+
 
     m = P0%nClass
     call blas_daxpy(m, sgn, P0%G_fun (1:m,tmp), 1, P0%G_fun (1:m,idx), 1)
@@ -998,9 +1127,10 @@ contains
     P0%sign(P0_SGN,   idx) =  P0%sign(P0_SGN,   idx) + sgn
     P0%sign(P0_SGNUP, idx) =  P0%sign(P0_SGNUP, idx) + sgnup
     P0%sign(P0_SGNDN, idx) =  P0%sign(P0_SGNDN, idx) + sgndn
-    P0%cnt = P0%cnt + 1
+    P0%cnt(CNT_HUB) = P0%cnt(CNT_HUB) + 1
 
   end subroutine DQMC_Phy0_Meas
+
 
   !--------------------------------------------------------------------!
 
