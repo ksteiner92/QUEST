@@ -22,7 +22,7 @@ contains
              call OMP_SET_NUM_THREADS(nproc)
           else
              write(*, "('Invalid number of threads, must be an integer &
-                between 1 and the max number of threads (', i2, ').')") nprocmax
+             &   between 1 and the max number of threads (', i2, ').')") nprocmax
              stop
           endif
        endif
