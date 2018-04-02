@@ -29,6 +29,7 @@ program dqmc_ggeom
   real(wp)            :: randn(1)
   integer             :: nproc
 
+
   call system_clock(t1)  
 
   !Setup OpenMP environment
@@ -65,18 +66,14 @@ program dqmc_ggeom
   call DQMC_Geom_Print(Hub%S, symmetries_output_file_unit)
 
 
-  ! Initialize the rest data
+  ! Initialize the rest of parameters
   call DQMC_Hub_Config(Hub, cfg)
   
   ! Perform input parameter checks
   if (Hub%nTry >= Gwrap%Lattice%nSites) then
     write(*,*)
-    write(*,"('  number of lattice sites =',i5)") Gwrap%Lattice%nSites
-    write(*,"('  ntry =',i5)") Hub%nTry
-    write(*,*) " Input 'ntry' exceeds the number of lattice sites."
-    write(*,*) " Please reset 'ntry' such that it is less than"
-    write(*,*) " the number of lattice sites."
-    write(*,*) " Program stopped."
+    write(*,"('  nTry =',i5,' > number of lattice sites =',i5)") Hub%nTry, Gwrap%Lattice%nSites
+    write(*,*) " Reset 'ntry' such that it is less than the number of lattice sites."
     stop
   end if
 
@@ -121,10 +118,14 @@ program dqmc_ggeom
   else if (Hub%HSFtype .eq. 1) then
     do i = 1, Hub%nWarm
        if (mod(i, 10)==0) write(*,'(A,i6,1x,i3)')' Warmup Sweep, nwrap  : ', i, Hub%G_up%nwrap
-       call DQMC_Hub_Sweep_cont(Hub, NO_MEAS0)
-       call DQMC_Hub_Sweep2_cont(Hub, Hub%nTry)
+       call DQMC_Hub_Sweep_Cont(Hub, NO_MEAS0)
+       call DQMC_Hub_Sweep2_Cont(Hub, Hub%nTry)
     end do
   end if
+
+  !call system_clock(t2,rate)
+  !write(STDOUT,*) "Running time:",  (t2-t1)/REAL(rate), "(second)"
+  !stop
 
   ! We divide all the measurement into nBin,
   ! each having nPass/nBin pass.
@@ -233,7 +234,8 @@ program dqmc_ggeom
 
   ! Print computed results
   call DQMC_Hub_OutputParam(Hub, OPT)
-  call DQMC_Phy0_Print(Hub%P0, Hub%S, OPT)
+  call DQMC_Phy0_Print(Hub%P0, Hub%S, SimType, OPT)  
+  !call DQMC_Phy0_Print(Hub%P0, Hub%S, OPT)   
   call DQMC_TDM1_Print(tm, TDM_UNIT)
 
   !Aliases for Fourier transform
