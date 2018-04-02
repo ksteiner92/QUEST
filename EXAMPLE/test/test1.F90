@@ -24,7 +24,7 @@ program dqmc_verify
   integer,      parameter  :: nx = 4, ny = 4, N = nx * ny
   real(wp),     parameter  :: t(4)  = [0.3_wp, 0.6_wp, ONE, ZERO]
   real(wp),     parameter  :: dtau  = 0.125_wp  
-  real(wp),     parameter  :: U(6)  = [ONE, TWO, TWO * TWO, ZERO, -ONE, -TWO]
+  real(wp),     parameter  :: U(9)  = [1.0_wp, 2.0_wp, 4.0_wp, 8.0_wp, 0.0_wp, -1.0_wp, -2.0_wp, -4.0_wp, -8.0_wp]
   real(wp),     parameter  :: mu(3) = [HALF, ZERO, -HALF]
   integer,      parameter  :: L = 12, HSF_IPT = -1, n_t = 1
   integer,      parameter  :: nWarm = 1000, nPass = 5000, nTry = 0
@@ -85,11 +85,11 @@ program dqmc_verify
   write(STDOUT, *) "| CASE 1. Single site (t=0)  |"
   write(STDOUT, *) "=============================="
   do i = 1, 3
-     do j = 1, 6
+     do j = 1, 9
         ! Initialize the parameter of the simulation
         call DQMC_Hub_Init(Hub, U(j:j), t_up(4:4), t_dn(4:4), mu_up(i:i), mu_dn(i:i), L, n_t, 1, 1, &
              dtau, HSF_IPT, nWarm, nPass, nMeas, nTry, nBin, tausk, idum, &
-             nOrth, nWrap, fixw, errrate, difflim, HALF, 0, 0, ZERO, ZERO, ssxx, HSF_DISC)
+             nOrth, nWrap, fixw, errrate, difflim, HALF, 0, 0, ZERO, ZERO, ssxx, HSF_DISC, 0.d0)
         beta = L * dtau
      
         ! Execute
@@ -129,11 +129,11 @@ program dqmc_verify
      
         ! 3. One-site occupancy
         !        
-        !                     exp(2*mu*beta)
-        !    PE = --------------------------------------
-        !          1+2*exp((U/2+mu)*beta)+exp(2*mu*beta)
+        !                                  exp(2*mu*beta)
+        !    double occupancy = --------------------------------------
+        !                       1+2*exp((U/2+mu)*beta)+exp(2*mu*beta)
         !
-        one_site_occupancy = tmp2 * tmp3 * Hub%U(1)
+        one_site_occupancy = tmp2 * tmp3 
         call DQMC_Phy0_GetResult(Hub%P0, P0_NUD, name, avg, err)
         call Display(" Double occupancy : ", one_site_occupancy, avg, err)
 
@@ -163,9 +163,9 @@ program dqmc_verify
   !     
   do i = 1, 3
      do j = 1, 3
-        call DQMC_Hub_Init(Hub, U(4:4), t_up(j:j), t_dn(j:j), mu_up(i:i), mu_dn(i:i), L, n_t, 1, 1, &
+        call DQMC_Hub_Init(Hub, U(5:5), t_up(j:j), t_dn(j:j), mu_up(i:i), mu_dn(i:i), L, n_t, 1, 1, &
              dtau, HSF_IPT, nWarm, nPass, nMeas, nTry, nBin, tausk, idum, &
-             nOrth, nWrap, fixw, errrate, difflim, HALF, 0, 0, ZERO, ZERO, ssxx, HSF_DISC)
+             nOrth, nWrap, fixw, errrate, difflim, HALF, 0, 0, ZERO, ZERO, ssxx, HSF_DISC, 0.d0)
         beta = L*dtau
      
         call DQMC_Hub_Run(Hub,0)
