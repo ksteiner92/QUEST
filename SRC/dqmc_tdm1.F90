@@ -45,7 +45,7 @@ module DQMC_TDM1
   end type tdmarray
 
   ! Index of the array varaiables
-  integer, parameter  :: NTDMARRAY = 8
+  integer, parameter  :: NTDMARRAY = 10
   integer, parameter  :: IGFUN = 1
   integer, parameter  :: IGFUP = 2
   integer, parameter  :: IGFDN = 3
@@ -54,6 +54,8 @@ module DQMC_TDM1
   integer, parameter  :: IDENS = 6
   integer, parameter  :: IPAIR = 7
   integer, parameter  :: ICOND = 8
+  integer, parameter  :: IFSUP = 9
+  integer, parameter  :: IFSDN = 10
 
   ! Index of the array varaiables
   character(len=12), parameter :: &
@@ -65,7 +67,9 @@ module DQMC_TDM1
                   "SzSz        ", &
                   "Den-Den     ", &
                   "S-wave      ", &
-                  "Conductivity" /)
+                  "Conductivity", &
+                  "GfunSelf up ", &
+                  "GfunSelf dn "/)
 
   type TDM1
      integer  :: L
@@ -76,6 +80,9 @@ module DQMC_TDM1
 
      integer  :: tmp
      integer  :: cnt
+
+     type(IndexListPtr), dimension(:), allocatable :: classToIdxPair
+     logical  :: selfen = .false.
 
      logical  :: compute=.false.
 
@@ -109,9 +116,10 @@ contains
     real(wp), intent(in)      :: dtau
     type(Struct), intent(in)  :: S
     type(GeomWrap), intent(in):: Gwrap
+    type(IndexList), pointer  :: next
 
     ! ... local variables ...
-    integer     :: i
+    integer     :: i, j, k
 
     ! ... Executable ...
 
@@ -131,9 +139,44 @@ contains
     ! initialize values
     T1%sgn   = ZERO
 
+    ! generate the array of linked lists which maps for every index pair class onto
+    ! all corresponding index pairs of this class
+    allocate(T1%classToIdxPair(S%nclass))
+    do i = 1, S%nSite
+        do j = 1, S%nSite
+            k = S%D(i,j)
+            if (.not. associated(T1%classToIdxPair(k)%ptr)) then
+                allocate(T1%classToIdxPair(k)%ptr)
+                T1%classToIdxPair(k)%ptr%i = i
+                T1%classToIdxPair(k)%ptr%j = j
+                T1%classToIdxPair(k)%ptr%n = 1
+                T1%classToIdxPair(k)%ptr%last => T1%classToIdxPair(k)%ptr
+            else
+                allocate(T1%classToIdxPair(k)%ptr%last%next)
+                T1%classToIdxPair(k)%ptr%last%next%i = i
+                T1%classToIdxPair(k)%ptr%last%next%j = j
+                T1%classToIdxPair(k)%ptr%n = T1%classToIdxPair(k)%ptr%n + 1
+                T1%classToIdxPair(k)%ptr%last => T1%classToIdxPair(k)%ptr%last%next
+            end if
+        end do
+    end do
+
+    !do i = 1, S%nclass
+    !    write(*,*) "class", i, T1%classToIdxPair(i)%ptr%n, "elements:"
+    !    next => T1%classToIdxPair(i)%ptr
+    !    do
+    !        write(*,*), next%i, next%j
+    !        if (.not. associated(next%next)) then
+    !            exit
+    !        end if
+    !        next => next%next
+    !    end do
+    !end do
+
     call  DQMC_TDM1_InitFTw(T1)
     allocate(T1%properties(NTDMARRAY))
     do i = 1, NTDMARRAY
+       if ((i .eq. IFSDN .or. i .eq. IFSUP) .and. .not. T1%selfen) cycle
        call DQMC_TDM1_InitProp(T1, S, Gwrap, i)
     enddo
     
@@ -246,6 +289,22 @@ contains
           allocate(T1%properties(iprop)%values(nclass,0:T1%L-1,T1%err))
           allocate(T1%properties(iprop)%valuesk(nk*npp,0:T1%L-1,T1%err))
 
+       case(IFSUP, IFSDN)
+
+          T1%properties(iprop)%tlink  => Gwrap%Hamilt%Uv
+          T1%properties(iprop)%n      =  S%nSite
+          T1%properties(iprop)%nclass =  S%nClass
+          T1%properties(iprop)%D      => S%D
+          T1%properties(iprop)%F      => S%F
+          T1%properties(iprop)%nk     =  Gwrap%GammaLattice%nclass_k
+          T1%properties(iprop)%np     =  Gwrap%lattice%natom
+          nullify(T1%properties(iprop)%ftk)
+          T1%properties(iprop)%ftw    => T1%ftwbos
+          T1%properties(iprop)%phase  => S%chi_phase
+          T1%properties(iprop)%clabel  => S%clabel
+          allocate(T1%properties(iprop)%values(S%nClass,0:T1%L-1,T1%err))
+          nullify(T1%properties(iprop)%valuesk)
+
        case(ICOND)
 
           nclass = 1
@@ -314,7 +373,7 @@ contains
     ! =========
     !
     type(TDM1), intent(inout) :: T1
-
+    type(IndexList), pointer :: current, next
     integer :: i
 
     ! ... Executable ...
@@ -332,6 +391,20 @@ contains
     deallocate(T1%ftwbos)
     deallocate(T1%ftwfer)
     deallocate(T1%properties)
+
+    do i = 1, size(T1%classToIdxPair)
+        current => T1%classToIdxPair(i)%ptr
+        if (.not. associated(current)) exit
+        next => current%next
+        do
+            deallocate(current)
+            if (.not. associated(next)) exit
+            current => next
+            if (.not. associated(current)) exit
+            next => current%next
+        enddo
+    end do
+    deallocate(T1%classToIdxPair)
 
   end subroutine DQMC_TDM1_Free
 
@@ -434,13 +507,16 @@ contains
 
     sgn = tau%sgnup * tau%sgndn
     do iprop = 1, NTDMARRAY
+       if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
        values => T1%properties(iprop)%values
-       do it = 0, L-1
-          do i = 1, T1%properties(iprop)%nClass
+       !$OMP PARALLEL DO SCHEDULE(STATIC), PRIVATE(it, factor)
+       do i = 1, T1%properties(iprop)%nClass
+           do it = 0, L-1
              factor = sgn/(T1%properties(iprop)%F(i)*cnt)
              values(i,it,T1%idx)   = values(i,it,T1%idx)   + factor*values(i,it,T1%tmp)
-          end do
+           end do
        end do
+       !$OMP END PARALLEL DO
        values(:,:,T1%tmp)   = ZERO
     enddo
 
@@ -528,6 +604,7 @@ contains
     ! Sum up the multi-threads value
     do n = 1, tau%nb * tau%nb
        do iprop = 1, NTDMARRAY
+          if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
           do i = 1, T1%properties(iprop)%nclass
              do it = 0, L-1
                    T1%properties(iprop)%values(i,it,T1%tmp) = T1%properties(iprop)%values(i,it,T1%tmp)+&
@@ -539,6 +616,7 @@ contains
  
     sgn = tau%sgnup * tau%sgndn
     do iprop = 1, NTDMARRAY
+       if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
        values => T1%properties(iprop)%values
        do it = 0, L-1
           do i = 1, T1%properties(iprop)%nClass
@@ -579,13 +657,15 @@ contains
 
     ! ... Local scalar ...
 
-    integer  :: i, j, k, dt, dt1, dt2
+    integer  :: nclass, i, j, a, b, k, dt, dt1, dt2, iprop, dij
     real(wp), pointer :: value1(:)
     real(wp), pointer :: value2(:)
     real(wp) :: factor
 
     integer :: nsite, ic, jc, l1s, l1e, l2s, l2e
-    real(wp) :: tl1up2up, tl1dn2dn, tl1up2dn, tl1dn2up, dxl1, dxl2, dxl1l2
+    real(wp) :: tl1up2up, tl1dn2dn, tl1up2dn, tl1dn2up, dxl1, dxl2, dxl1l2, Fabjt0
+    integer  :: dims(3), indices(3)
+    type(IndexList), pointer :: next
 
     ! ... Executable ...
     if (.not.T1%compute) return
@@ -607,96 +687,123 @@ contains
        factor = 0.5d0
     endif
 
+    nclass = size(T1%classToIdxPair)
+    dims(1:3) = T1%properties(IFSDN)%nk
+
+    !$OMP PARALLEL DO SCHEDULE(STATIC), PRIVATE(next, i, j, value1, value2, indices, a, b, iprop)
+    do k = 1, nclass
+        do iprop = 1, NTDMARRAY
+            if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
+            value1  => T1%properties(iprop)%values(:, dt1, T1%tmp)
+            value2  => T1%properties(iprop)%values(:, dt2, T1%tmp)
+            next => T1%classToIdxPair(k)%ptr
+            do
+                i = next%i
+                j = next%j
+                select case(iprop)
+                        case (IGFUN)
+                            value1(k)  = value1(k) + factor*(upt0(i,j) + dnt0(i,j))
+                            if (dt .ne. 0) then
+                                value2(k)  = value2(k) - factor*(up0t(i,j) + dn0t(i,j))
+                            end if
+                        case (IGFUP)
+                            value1(k)  = value1(k) + 2*factor*upt0(i,j)
+                            if (dt .ne. 0) then
+                                value2(k)  = value2(k) - 2*factor*up0t(i,j)
+                            end if
+                        case (IGFDN)
+                            value1(k)  = value1(k) + 2*factor*dnt0(i,j)
+                            if (dt .ne. 0) then
+                                value2(k)  = value2(k) - 2*factor*dn0t(i,j)
+                            end if
+                        case (ISPXX)
+                            if (dt .ne. 0) then
+                                value1(k)  = value1(k) - (up0t(j,i)*dnt0(i,j) &
+                                        + dn0t(j,i)*upt0(i,j))/2
+                                value2(k)  = value2(k) - (up0t(i,j)*dnt0(j,i) &
+                                    + dn0t(i,j)*upt0(j,i))/2
+                            else
+                                value1(k)  = value1(k) - up0t(j,i)*dnt0(i,j) &
+                                        - dn0t(j,i)*upt0(i,j)
+                            end if
+                        case (ISPZZ)
+                            if (dt .ne. 0) then
+                                value1(k)  = value1(k) - (up0t(j,i)*upt0(i,j) &
+                                        + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)-dntt(i,i))*(up00(j,j)-dn00(j,j)) )*0.5_wp
+                                value2(k)  = value2(k) - (dn0t(i,j)*dnt0(j,i) &
+                                    + up0t(i,j)*upt0(j,i) - (uptt(j,j)-dntt(j,j))*(up00(i,i)-dn00(i,i)) )*0.5_wp
+                            else
+                                value1(k)  = value1(k) - (up0t(j,i)*upt0(i,j) &
+                                        + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)-dntt(i,i))*(up00(j,j)-dn00(j,j)) )
+                            end if
+                        case (IDENS)
+                            if (dt .ne. 0) then
+                                value1(k)  = value1(k) - ( up0t(j,i)*upt0(i,j) &
+                                        + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)+dntt(i,i))*(up00(j,j)+dn00(j,j)) &
+                                        - 2.0_wp*(1.0_wp - uptt(i,i) - up00(j,j) ) &
+                                        - 2.0_wp*(1.0_wp - dntt(i,i) - dn00(j,j) ) )*0.5_wp
+                                value2(k)  = value2(k) - (dn0t(i,j)*dnt0(j,i) &
+                                        + up0t(i,j)*upt0(j,i) - (uptt(j,j)+dntt(j,j))*(up00(i,i)+dn00(i,i)) &
+                                        - 2.0_wp*(1.0_wp - up00(i,i) - uptt(j,j) ) &
+                                        - 2.0_wp*(1.0_wp - dn00(i,i) - dntt(j,j) ) )*0.5_wp
+                            else
+                                value1(k)  = value1(k) - ( up0t(j,i)*upt0(i,j) &
+                                        + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)+dntt(i,i))*(up00(j,j)+dn00(j,j)) &
+                                        - 2.0_wp*(1.0_wp - uptt(i,i) - up00(j,j) ) &
+                                        - 2.0_wp*(1.0_wp - dntt(i,i) - dn00(j,j) ) )
+                            end if
+
+                        case(IPAIR)
+                            if (dt .ne. 0) then
+                                value1(k)  = value1(k) + (upt0(i,j)*dnt0(i,j) &
+                                        + dn0t(j,i)*up0t(j,i))/2
+                                value2(k)  = value2(k) + (upt0(j,i)*dnt0(j,i) &
+                                        + dn0t(i,j)*up0t(i,j))/2
+                            else
+                                value1(k)  = value1(k) + upt0(i,j)*dnt0(i,j) &
+                                        + dn0t(j,i)*up0t(j,i)
+                            end if
+                        case (IFSUP)
+                            if (i .eq. j) then
+                                dij = 1
+                            else
+                                dij = 0
+                            end if
+                            if (dt .ne. 0) then
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - dntt(i,i)) * upt0(i,j) * (1.0 - dn00(j,j)) + &
+                                        (dij - dn0t(j,i)) * dnt0(i,j) * upt0(i,j)) * 0.5
+                                value2(k)  = value2(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - dntt(j,j)) * upt0(j,i) * (1.0 - dn00(i,i)) + &
+                                        (dij - dn0t(i,j)) * dnt0(j,i) * upt0(j,i)) * 0.5
+                            else
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * (1.0 - dntt(i,i)) * upt0(i,j) * (1.0 - dn00(j,j)) + &
+                                        (dij - dn0t(j,i)) * dnt0(i,j) * upt0(i,j)
+                            end if
+                        case (IFSDN)
+                            if (i .eq. j) then
+                                dij = 1
+                            else
+                                dij = 0
+                            end if
+                            if (dt .ne. 0) then
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - uptt(i,i)) * dnt0(i,j) * (1.0 - up00(j,j)) + &
+                                        (dij - up0t(j,i)) * upt0(i,j) * dnt0(i,j)) * 0.5
+                                value2(k)  = value2(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - uptt(j,j)) * dnt0(j,i) * (1.0 - up00(i,i)) + &
+                                        (dij - up0t(i,j)) * upt0(j,i) * dnt0(j,i)) * 0.5
+                            else
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * (1.0 - uptt(i,i)) * dnt0(i,j) * (1.0 - up00(j,j)) + &
+                                        (dij - up0t(j,i)) * upt0(i,j) * dnt0(i,j)
+                            end if
+                end select
+                if (.not. associated(next%next)) then
+                    exit
+                end if
+                next => next%next
+            end do
+        end do
+    end do
+    !$OMP END PARALLEL DO
+
     if (dt .ne. 0) then
-
-       value1  => T1%properties(IGFUN)%values(:, dt1, T1%tmp)
-       value2  => T1%properties(IGFUN)%values(:, dt2, T1%tmp)
-       do i = 1, T1%properties(IGFUN)%n
-          do j = 1, T1%properties(IGFUN)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IGFUN)%D(i,j)
-             value1(k)  = value1(k) + factor*(upt0(i,j) + dnt0(i,j))
-             value2(k)  = value2(k) - factor*(up0t(i,j) + dn0t(i,j))
-          end do
-       end do
-
-       value1  => T1%properties(IGFUP)%values(:, dt1, T1%tmp)
-       value2  => T1%properties(IGFUP)%values(:, dt2, T1%tmp)
-       do i = 1, T1%properties(IGFUP)%n
-          do j = 1, T1%properties(IGFUP)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IGFUP)%D(i,j)
-             value1(k)  = value1(k) + 2*factor*upt0(i,j)
-             value2(k)  = value2(k) - 2*factor*up0t(i,j)
-          end do
-       end do
-
-       value1  => T1%properties(IGFDN)%values(:, dt1, T1%tmp)
-       value2  => T1%properties(IGFDN)%values(:, dt2, T1%tmp)
-       do i = 1, T1%properties(IGFDN)%n
-          do j = 1, T1%properties(IGFDN)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IGFDN)%D(i,j)
-             value1(k)  = value1(k) + 2*factor*dnt0(i,j)
-             value2(k)  = value2(k) - 2*factor*dn0t(i,j)
-          end do
-       end do
-
-       value1  => T1%properties(ISPXX)%values(:, dt1, T1%tmp)
-       value2  => T1%properties(ISPXX)%values(:, dt2, T1%tmp)
-       do i = 1,  T1%properties(ISPXX)%n
-          do j = 1,  T1%properties(ISPXX)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(ISPXX)%D(i,j)
-             value1(k)  = value1(k) - (up0t(j,i)*dnt0(i,j) &
-                  + dn0t(j,i)*upt0(i,j))/2
-             value2(k)  = value2(k) - (up0t(i,j)*dnt0(j,i) &
-                  + dn0t(i,j)*upt0(j,i))/2
-          end do
-       end do
-
-       value1  => T1%properties(ISPZZ)%values(:, dt1, T1%tmp)
-       value2  => T1%properties(ISPZZ)%values(:, dt2, T1%tmp)
-       do i = 1, T1%properties(ISPZZ)%n
-          do j = 1, T1%properties(ISPZZ)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(ISPZZ)%D(i,j)
-             value1(k)  = value1(k) - (up0t(j,i)*upt0(i,j) &
-               + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)-dntt(i,i))*(up00(j,j)-dn00(j,j)) )*0.5_wp
-             value2(k)  = value2(k) - (dn0t(i,j)*dnt0(j,i) &
-               + up0t(i,j)*upt0(j,i) - (uptt(j,j)-dntt(j,j))*(up00(i,i)-dn00(i,i)) )*0.5_wp
-          end do
-       end do
-
-       value1  => T1%properties(IDENS)%values(:, dt1, T1%tmp)
-       value2  => T1%properties(IDENS)%values(:, dt2, T1%tmp)
-       do i = 1, T1%properties(IDENS)%n
-          do j = 1, T1%properties(IDENS)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IDENS)%D(i,j)
-             value1(k)  = value1(k) - ( up0t(j,i)*upt0(i,j) &
-               + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)+dntt(i,i))*(up00(j,j)+dn00(j,j)) &
-               - 2.0_wp*(1.0_wp - uptt(i,i) - up00(j,j) ) &
-               - 2.0_wp*(1.0_wp - dntt(i,i) - dn00(j,j) ) )*0.5_wp
-             value2(k)  = value2(k) - (dn0t(i,j)*dnt0(j,i) &
-               + up0t(i,j)*upt0(j,i) - (uptt(j,j)+dntt(j,j))*(up00(i,i)+dn00(i,i)) &
-               - 2.0_wp*(1.0_wp - up00(i,i) - uptt(j,j) ) &
-               - 2.0_wp*(1.0_wp - dn00(i,i) - dntt(j,j) ) )*0.5_wp
-          end do
-       end do
-
-       value1  => T1%properties(IPAIR)%values(:, dt1, T1%tmp)
-       value2  => T1%properties(IPAIR)%values(:, dt2, T1%tmp)
-       do i = 1,  T1%properties(IPAIR)%n
-          do j = 1,  T1%properties(IPAIR)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IPAIR)%D(i,j)
-             value1(k)  = value1(k) + (upt0(i,j)*dnt0(i,j) &
-                  + dn0t(j,i)*up0t(j,i))/2
-             value2(k)  = value2(k) + (upt0(j,i)*dnt0(j,i) &
-                  + dn0t(i,j)*up0t(i,j))/2
-          end do
-       end do
 
        ! Uniform (q=0) current structure factor. This quantity can be used to get approximated dc conductivity.
        value1  => T1%properties(ICOND)%values(:, dt1, T1%tmp)
@@ -774,77 +881,6 @@ contains
            end do
 
     else
-
-       value1  => T1%properties(IGFUN)%values(:, dt1, T1%tmp)
-       do i = 1, T1%properties(IGFUN)%n
-          do j = 1, T1%properties(IGFUN)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IGFUN)%D(i,j)
-             value1(k)  = value1(k) + factor*(upt0(i,j) + dnt0(i,j))
-          end do
-       end do
-
-       value1  => T1%properties(IGFUP)%values(:, dt1, T1%tmp)
-       do i = 1, T1%properties(IGFUP)%n
-          do j = 1, T1%properties(IGFUP)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IGFUP)%D(i,j)
-             value1(k)  = value1(k) + 2*factor*upt0(i,j)
-          end do
-       end do
-
-       value1  => T1%properties(IGFDN)%values(:, dt1, T1%tmp)
-       do i = 1, T1%properties(IGFDN)%n
-          do j = 1, T1%properties(IGFDN)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IGFDN)%D(i,j)
-             value1(k)  = value1(k) + 2*factor*dnt0(i,j)
-          end do
-       end do
-
-       value1  => T1%properties(ISPXX)%values(:, dt1, T1%tmp)
-       do i = 1,  T1%properties(ISPXX)%n
-          do j = 1,  T1%properties(ISPXX)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(ISPXX)%D(i,j)
-             value1(k)  = value1(k) - up0t(j,i)*dnt0(i,j) &
-                  - dn0t(j,i)*upt0(i,j)
-          end do
-       end do
-
-       value1  => T1%properties(ISPZZ)%values(:, dt1, T1%tmp)
-       do i = 1, T1%properties(ISPZZ)%n
-          do j = 1, T1%properties(ISPZZ)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(ISPZZ)%D(i,j)
-             value1(k)  = value1(k) - (up0t(j,i)*upt0(i,j) &
-               + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)-dntt(i,i))*(up00(j,j)-dn00(j,j)) )
-          end do
-       end do
-
-       value1  => T1%properties(IDENS)%values(:, dt1, T1%tmp)
-       do i = 1, T1%properties(IDENS)%n
-          do j = 1, T1%properties(IDENS)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IDENS)%D(i,j)
-             value1(k)  = value1(k) - ( up0t(j,i)*upt0(i,j) &
-               + dn0t(j,i)*dnt0(i,j) - (uptt(i,i)+dntt(i,i))*(up00(j,j)+dn00(j,j)) &
-               - 2.0_wp*(1.0_wp - uptt(i,i) - up00(j,j) ) &
-               - 2.0_wp*(1.0_wp - dntt(i,i) - dn00(j,j) ) )
-
-          end do
-       end do
-
-       value1  => T1%properties(IPAIR)%values(:, dt1, T1%tmp)
-       do i = 1,  T1%properties(IPAIR)%n
-          do j = 1,  T1%properties(IPAIR)%n
-             ! k is the distance index of site i and site j
-             k = T1%properties(IPAIR)%D(i,j)
-             value1(k)  = value1(k) + upt0(i,j)*dnt0(i,j) &
-                  + dn0t(j,i)*up0t(j,i)
-          end do
-       end do
-
        value1  => T1%properties(ICOND)%values(:, dt1, T1%tmp)
 
        nsite  = T1%properties(ICOND)%n*T1%properties(ICOND)%nk
@@ -921,6 +957,7 @@ contains
 
     ! Compute average on Green's function
     do i = 1, NTDMARRAY
+       if ((i .eq. IFSDN .or. i .eq. IFSUP) .and. .not. T1%selfen) cycle
        nl = T1%properties(i)%nClass * T1%L
        call dscal(nl, factor, T1%properties(i)%values(:,0,idx), 1)
     enddo
@@ -965,6 +1002,8 @@ contains
             y, sgn, sum_sgn)
 
        do iprop = 1, NTDMARRAY
+          if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
+          !$OMP PARALLEL DO SCHEDULE(STATIC), PRIVATE(j, data, average, error), FIRSTPRIVATE(y)
           do i = 1, T1%properties(iprop)%nClass
              do j = 0, T1%L-1
                 data =  T1%properties(iprop)%values(i, j, 1:n)
@@ -973,6 +1012,7 @@ contains
                 T1%properties(iprop)%values(i, j, err) = error
              enddo
           end do
+          !$OMP END PARALLEL DO
        enddo
 
     else
@@ -987,6 +1027,7 @@ contains
 
           !Average properties
           do iprop = 1, NTDMARRAY
+             if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
              binptr => T1%properties(iprop)%values(:,:,1)
              aveptr => T1%properties(iprop)%value(:,:,avg)
              n = T1%properties(iprop)%nClass * T1%L
@@ -996,6 +1037,7 @@ contains
 
           !Compute average over n-1 processors
           do iprop = 1, NTDMARRAY
+             if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
              binptr => T1%properties(iprop)%values(:,:,1)
              aveptr => T1%properties(iprop)%values(:,:,avg)
              binptr = (aveptr - binptr) / dble(nproc - 1)
@@ -1004,6 +1046,7 @@ contains
 
           !Store average amongst all processors
           do iprop = 1, NTDMARRAY
+             if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
              aveptr => T1%properties(iprop)%values(:,:,avg)
              aveptr =  aveptr / T1%sgn(avg) 
           enddo
@@ -1011,12 +1054,14 @@ contains
 
           !Store jackknife in the processor bin
           do iprop = 1, NTDMARRAY
+             if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
              binptr => T1%properties(iprop)%values(:,:,1)
              binptr =  binptr / T1%sgn(1) 
           enddo
 
           !Compute error
           do iprop = 1, NTDMARRAY
+             if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
              binptr => T1%properties(iprop)%values(:,:,1)
              errptr => T1%properties(iprop)%values(:,:,err)
              n = T1%properties(iprop)%nClass * T1%L
@@ -1062,6 +1107,7 @@ contains
     enddo
 
     do iprop = 1, NTDMARRAY
+       if ((iprop .eq. IFSDN .or. iprop .eq. IFSUP) .and. .not. T1%selfen) cycle
        do i = 1, T1%properties(iprop)%nclass
           do j = 0, T1%L-1
              tmp(j+1, 1:2) = T1%properties(iprop)%values(i, j, T1%avg:T1%err)
@@ -1249,6 +1295,119 @@ contains
     enddo
 
   end subroutine DQMC_TDM1_PrintKFT
+
+  !--------------------------------------------------------------------!
+
+  subroutine DQMC_TDM1_ImprovedSelfEnergy(T1, tau, OPT)
+    type(TDM1), intent(in)    :: T1
+    type(gtau), intent(inout) :: tau
+    integer, intent(in)       :: OPT
+
+    integer :: L, n, a, b, i, j, ab, t, nclass, indices(3), dims(3)
+    !complex(wp), allocatable :: work(:)
+    real(wp), allocatable :: S(:,:)
+    !complex(wp), allocatable :: G(:,:), GS(:,:), S(:,:)
+    !integer, allocatable     :: ipiv(:)
+    !integer     :: info
+    real(wp)            :: tmp(T1%L, 2)
+    character(len=15)   :: label(T1%L)
+    character(len=slen) :: title
+
+    L      =  T1%L
+    n     =  T1%properties(IGFUN)%n
+    nclass = T1%properties(IFSUP)%nk
+
+    !allocate(work(n))
+    !allocate(ipiv(n))
+    !allocate(G(n,n))
+    !allocate(GS(n,n))
+    !allocate(S(0:L-1, nclass))
+
+    !dims(1:3) = n
+
+!    !$OMP PARALLEL DO SCHEDULE(STATIC), PRIVATE(a, b, i, j, ab, indices)
+!    do t = 0, L - 1
+!        write(label(t + 1),'(f15.8)') t * T1%dtau
+!        S(t,:) = 0.0
+!        do a = 1, n
+!            do b = 1, n
+!                indices(2) = b
+!                ab = T1%properties(IFSUP)%D(a,b)
+!                do i = 1, n
+!                    indices(1) = i
+!                    do j = 1, n
+!                        indices(3) = j
+!                        S(t,ab) = S(t,ab) + 0.5_wp * (T1%properties(IFSUP)%tlink(j,b) + T1%properties(IFSUP)%tlink(b,j)) * &
+!                                T1%properties(IFSUP)%values(DQMC_TDM1_GetUniqueIndexOfTuple(indices, dims, 3), t, T1%avg) / &
+!                                T1%properties(IGFUP)%values(T1%properties(IGFUP)%D(a,i), t, T1%avg)
+!                    end do
+!                end do
+!            end do
+!        end do
+!    end do
+!    !$OMP END PARALLEL DO
+
+!    !$OMP PARALLEL DO SCHEDULE(STATIC), PRIVATE(a, b, i, j, ab, indices)
+!    do t = 0, L - 1
+!        write(label(t + 1),'(f15.8)') t * T1%dtau
+!        S(t,:) = 0.0
+!        do a = 1, n
+!            do b = 1, n
+!                indices(2) = b
+!                ab = T1%properties(IFSUP)%D(a,b)
+!                do i = 1, n
+!                    indices(1) = i
+!                    do j = 1, n
+!                        indices(3) = j
+!                        S(t,ab) = S(t,ab) + 0.5_wp * (T1%properties(IFSUP)%tlink(j,b) + T1%properties(IFSUP)%tlink(b,j)) * &
+!                                T1%properties(IFSUP)%values(DQMC_TDM1_GetUniqueIndexOfTuple(indices, dims, 3), t, T1%avg) / &
+!                                T1%properties(IGFUP)%values(T1%properties(IGFUP)%D(a,i), t, T1%avg)
+!                    end do
+!                end do
+!            end do
+!        end do
+!    end do
+!    !$OMP END PARALLEL DO
+
+    !do t = 0, L - 1
+    !   write(label(t + 1),'(f15.8)') t * T1%dtau
+       ! Fill matrix. Note that G is complex symmetric. Not hermitian.
+    !   do i = 1, n
+    !       do j = 1, n
+    !           G(i,j) = T1%properties(IGFUP)%values(T1%properties(IGFUP)%D(i,j), t, T1%avg)
+    !           GS(i,j) = T1%properties(IFSUP)%values(T1%properties(IFSUP)%D(i,j), t, T1%avg)
+    !       end do
+    !   end do
+       ! solve the linear equation system G*Sigma = B, where G is the Green's function
+       ! Sigma the self energy matrix and B GSigma calculated through the correlation
+       ! function F = -<T c_a(tau)c^+_b(tau')c^+_j(tau')c_j(tau') >
+    !   call zgetrf(n, n, G(1:n,1:n), n, ipiv(1:n), info)
+    !   call zgetrs('N', n, n, G(1:n,1:n), n, ipiv(1:n), GS(1:n, 1:n), n, info)
+    !   S(t,:) = 0.0
+    !   do i = 1, n
+    !       do j = 1, n
+    !           S(t,T1%properties(IGFUP)%D(i,j)) = GS(i,j)
+    !       end do
+    !   end do
+    !enddo
+
+    do i = 1, nclass
+        do j = 0, L - 1
+            tmp(j+1,1) = S(j, i)
+            tmp(j+1,2) = 0.0
+        enddo
+        title = "SelfEnergy up "//trim(adjustl(T1%properties(IFSUP)%clabel(i)))
+        call DQMC_Print_Array(0, L , title, label, tmp(:, 1:1), tmp(:, 2:2), OPT)
+        write(OPT,'(1x)')
+    enddo
+
+    !deallocate(work)
+    !deallocate(ipiv)
+    !deallocate(G)
+    !deallocate(GS)
+    deallocate(S)
+
+  end subroutine DQMC_TDM1_ImprovedSelfEnergy
 
   !--------------------------------------------------------------------!
 

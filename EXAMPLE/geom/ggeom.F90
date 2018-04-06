@@ -28,7 +28,8 @@ program dqmc_ggeom
   integer             :: FLD_UNIT, TDM_UNIT
   real(wp)            :: randn(1)
   integer             :: nproc
-
+  integer             :: selfen
+ 
   call system_clock(t1)  
 
   !Setup OpenMP environment
@@ -52,6 +53,8 @@ program dqmc_ggeom
   !   call DQMC_open_file(adjustl(trim(ofile))//'.HSF.stream','unknown', HSF_output_file_unit)
   !endif
 
+  !Calculate self energy
+  call CFG_Get(cfg, "selfen", selfen)
 
   call DQMC_open_file(adjustl(trim(ofile))//'.geometry','unknown', symmetries_output_file_unit)
   !Determines type of geometry file
@@ -84,6 +87,9 @@ program dqmc_ggeom
   call CFG_Get(cfg, "tdm", comp_tdm)
   if (comp_tdm > 0) then
      call DQMC_open_file(adjustl(trim(ofile))//'.tdm.out','unknown', TDM_UNIT)
+     if (selfen > 0) then
+           tm%selfen = .true.
+     end if
      call DQMC_Gtau_Init(Hub, tau)
      call DQMC_TDM1_Init(Hub%L, Hub%dtau, tm, Hub%P0%nbin, Hub%S, Gwrap)
      if (nproc > 1) then

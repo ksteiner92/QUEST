@@ -49,7 +49,16 @@ module DQMC_Util
   integer, parameter :: DLARNV_UNI_N1_1 = 2
   integer, parameter :: DLARNV_NORMAL   = 3
 
+  type IndexList
+      integer :: i, j
+      integer :: n
+      type(IndexList), pointer :: next => null()
+      type(IndexList), pointer :: last => null()
+  end type IndexList
 
+  type IndexListPtr
+      type(IndexList), pointer :: ptr => null()
+  end type IndexListPtr
  
   interface conjg
      module procedure conjg_real, conjg_real1, conjg_real2
@@ -1289,6 +1298,24 @@ contains
     inv(:,:) = inv(:,:)*invdet
 
   end subroutine get_inverse
+
+  !--------------------------------------------------------------------!
+
+  function DQMC_TDM1_GetUniqueIndexOfTuple(tuple, dims, n) result(idx)
+    integer     :: tuple(:)
+    integer     :: dims(:)
+    integer     :: n
+    integer     :: idx, i, j, offset
+
+    idx = 0;
+    do i = 1, n
+        offset = 1
+        do j = i + 1, n
+            offset = offset * dims(j)
+        end do
+        idx = idx + offset * tuple(i)
+    end do
+  end function DQMC_TDM1_GetUniqueIndexOfTuple
 
   !--------------------------------------------------------------------!
 
