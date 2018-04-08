@@ -55,7 +55,7 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR})
 add_executable(ggeom EXAMPLE/geom/ggeom.F90)
 target_link_libraries(ggeom dqmc)
 target_include_directories(ggeom PUBLIC $<TARGET_PROPERTY:dqmc,Fortran_MODULE_DIRECTORY>)
-set_target_properties(ggeom PROPERTIES LINKER_LANGUAGE For2tran)
+set_target_properties(ggeom PROPERTIES LINKER_LANGUAGE Fortran)
 
 
 if (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
