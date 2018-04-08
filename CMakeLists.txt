@@ -13,12 +13,12 @@ endif (NOT CMAKE_BUILD_TYPE)
 option(USE_CKB "Use checkboard decomposition" OFF)
 #option(USE_CUDA "Use GPU support" OFF)
 
+enable_language(Fortran)
+
 # set cmake module path for *.cmake
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-enable_language(Fortran)
-
-add_library(util OBJECT SRC/dqmc_mpi.F90 SRC/dqmc_util.F90 SRC/dqmc_cfg.F90)
+add_library(util OBJECT SRC/dqmc_mpi.F90 SRC/dqmc_util.F90 SRC/dqmc_cfg.F90 SRC/dqmc_omp.F90)
 add_library(latt OBJECT SRC/dqmc_geom_param.F90 SRC/dqmc_latt.F90 SRC/dqmc_bonds.F90 SRC/dqmc_reclatt.F90 )
 add_library(hamilt OBJECT SRC/dqmc_hamilt.F90 SRC/dqmc_symm.F90)
 if (USE_CKB)
@@ -49,6 +49,14 @@ add_library(dqmc STATIC  $<TARGET_OBJECTS:util>
                          $<TARGET_OBJECTS:phy>
                          $<TARGET_OBJECTS:phy2>
                          $<TARGET_OBJECTS:tdm>)
+
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR})
+
+add_executable(ggeom EXAMPLE/geom/ggeom.F90)
+target_link_libraries(ggeom dqmc)
+target_include_directories(ggeom PUBLIC $<TARGET_PROPERTY:dqmc,Fortran_MODULE_DIRECTORY>)
+set_target_properties(ggeom PROPERTIES LINKER_LANGUAGE For2tran)
+
 
 if (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -m64 -funroll-loops -Wall -O3 -fPIC")

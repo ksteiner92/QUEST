@@ -663,7 +663,7 @@ contains
     real(wp) :: factor
 
     integer :: nsite, ic, jc, l1s, l1e, l2s, l2e
-    real(wp) :: tl1up2up, tl1dn2dn, tl1up2dn, tl1dn2up, dxl1, dxl2, dxl1l2, Fabjt0
+    real(wp) :: tl1up2up, tl1dn2dn, tl1up2dn, tl1dn2up, dxl1, dxl2, dxl1l2
     integer  :: dims(3), indices(3)
     type(IndexList), pointer :: next
 
@@ -770,12 +770,15 @@ contains
                                 dij = 0
                             end if
                             if (dt .ne. 0) then
-                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - dntt(i,i)) * upt0(i,j) * (1.0 - dn00(j,j)) + &
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 &
+                                        * ((1.0 - dntt(i,i)) * upt0(i,j) * (1.0 - dn00(j,j)) + &
                                         (dij - dn0t(j,i)) * dnt0(i,j) * upt0(i,j)) * 0.5
-                                value2(k)  = value2(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - dntt(j,j)) * upt0(j,i) * (1.0 - dn00(i,i)) + &
+                                value2(k)  = value2(k) - T1%properties(IFSUP)%tlink(0,0)**2 &
+                                        * ((1.0 - dntt(j,j)) * upt0(j,i) * (1.0 - dn00(i,i)) + &
                                         (dij - dn0t(i,j)) * dnt0(j,i) * upt0(j,i)) * 0.5
                             else
-                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * (1.0 - dntt(i,i)) * upt0(i,j) * (1.0 - dn00(j,j)) + &
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 &
+                                        * (1.0 - dntt(i,i)) * upt0(i,j) * (1.0 - dn00(j,j)) + &
                                         (dij - dn0t(j,i)) * dnt0(i,j) * upt0(i,j)
                             end if
                         case (IFSDN)
@@ -785,12 +788,15 @@ contains
                                 dij = 0
                             end if
                             if (dt .ne. 0) then
-                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - uptt(i,i)) * dnt0(i,j) * (1.0 - up00(j,j)) + &
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 &
+                                        * ((1.0 - uptt(i,i)) * dnt0(i,j) * (1.0 - up00(j,j)) + &
                                         (dij - up0t(j,i)) * upt0(i,j) * dnt0(i,j)) * 0.5
-                                value2(k)  = value2(k) - T1%properties(IFSUP)%tlink(0,0)**2 * ((1.0 - uptt(j,j)) * dnt0(j,i) * (1.0 - up00(i,i)) + &
+                                value2(k)  = value2(k) - T1%properties(IFSUP)%tlink(0,0)**2 &
+                                        * ((1.0 - uptt(j,j)) * dnt0(j,i) * (1.0 - up00(i,i)) + &
                                         (dij - up0t(i,j)) * upt0(j,i) * dnt0(j,i)) * 0.5
                             else
-                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 * (1.0 - uptt(i,i)) * dnt0(i,j) * (1.0 - up00(j,j)) + &
+                                value1(k)  = value1(k) - T1%properties(IFSUP)%tlink(0,0)**2 &
+                                        * (1.0 - uptt(i,i)) * dnt0(i,j) * (1.0 - up00(j,j)) + &
                                         (dij - up0t(j,i)) * upt0(i,j) * dnt0(i,j)
                             end if
                 end select
